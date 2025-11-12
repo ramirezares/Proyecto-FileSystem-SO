@@ -9,7 +9,6 @@ import _03_LowLevelAbstractions.CPU;
 import _03_LowLevelAbstractions.DMA;
 import _03_LowLevelAbstractions.MainMemory;
 import _03_LowLevelAbstractions.RealTimeClock;
-import java.io.File;
 import java.util.Random;
 
 /**
@@ -21,6 +20,7 @@ public class OperatingSystem extends Thread {
     //          ----- Atributos -----
     // Componentes del sistema
     private CPU cpu;
+    private FileSystem fileSystem;
     private DMA dma;
     private MainMemory mp;
     private Scheduler scheduler;
@@ -38,17 +38,17 @@ public class OperatingSystem extends Thread {
     // Para crear procesos random
     private static final Random RANDOM = new Random();
 
-
     //          --------------- Metodos ---------------
     public OperatingSystem() {
         this.cpu = new CPU(this);
-        this.dma = new DMA(this);
+        this.fileSystem = new FileSystem(null);
+        this.dma = new DMA(this, this.fileSystem);
         this.mp = new MainMemory(this);
         this.scheduler = new Scheduler(this, PolicyType.FIFO);
         this.readyQueue = new SimpleList<Process1>();
         this.blockedQueue = new SimpleList<Process1>();
         this.terminatedQueue = new SimpleList<Process1>();
-        this.clock = new RealTimeClock(this.cpu, this.dma, 1000);
+        this.clock = new RealTimeClock(this.cpu, this.dma, this.fileSystem, 2000);
 
     }
 
@@ -64,12 +64,15 @@ public class OperatingSystem extends Thread {
             this.start();
             this.cpu.start();
             this.dma.start();
+            this.fileSystem.setDMAReference(dma);
+            this.fileSystem.start();
             this.clock.start();
         }
 
         this.isRunning = true;
         this.cpu.playCPU();
         this.dma.playDMA();
+        this.fileSystem.playFileSystem();
         this.clock.playClock();
 
     }
@@ -78,6 +81,7 @@ public class OperatingSystem extends Thread {
         this.isRunning = false;
         this.cpu.stopCPU();
         this.dma.stopDMA();
+        this.fileSystem.stopFileSystem();
         this.clock.stopClock();
         // Despertar al SO para que salga del wait()
         synchronized (osMonitor) {
@@ -126,9 +130,6 @@ public class OperatingSystem extends Thread {
         System.out.println("SO: Hilo del Sistema Operativo detenido.");
     }
 
-    public void loadConfigFromJSON(File f) {
-    }
-
     public void newProcess(IOAction action, Catalog catalog) {
 
         // Verifico y obtengo la dirección base usando las instrucciones totales como tamaño
@@ -138,7 +139,7 @@ public class OperatingSystem extends Thread {
 
         // Si no hay espacio en memoria
         if (baseDirection == -1) {
-            String name = "Proceso de "+catalog.getName()+"."; 
+            String name = "Proceso de " + catalog.getName() + ".";
             newProcess = new Process1(name, -1, action, catalog);
             System.out.println("No hay espacio contiguo suficiente (" + 1 + " unidades) en la Memoria Principal para el proceso " + newProcess.getPName() + ". Proceso no admitido en el sistema. Enviando a cola de nuevos");
             //Agregar a la cola de nuevos del dma
@@ -146,7 +147,7 @@ public class OperatingSystem extends Thread {
 
             // Si hay espacio
         } else {
-            String name = "Proceso de "+catalog.getName()+"."; 
+            String name = "Proceso de " + catalog.getName() + ".";
             //Crear el objeto Process con la dirección base encontrada
             newProcess = new Process1(name, baseDirection, action, catalog);
             // Coloco el proceso en listo
@@ -170,7 +171,7 @@ public class OperatingSystem extends Thread {
         Process1 nextProcess = scheduler.selectNextProcess();
 
         if (nextProcess != null) {
-            
+
             this.cpu.setCurrentProcess(nextProcess);
             nextProcess.setPState(ProcessState.RUNNING); // Nuevo estado
 
@@ -221,7 +222,7 @@ public class OperatingSystem extends Thread {
             terminatedIOProcess.setPState(ProcessState.READY); // Cambio su estado
             this.getReadyQueue().insertLast(terminatedIOProcess); // Lo agrego a la cola de listos
 
-        } 
+        }
 
         // Si no hay mas procesos bloqueados el DMA queda libre
         if (this.blockedQueue.isEmpty()) {
@@ -249,22 +250,27 @@ public class OperatingSystem extends Thread {
         this.getCpu().setCurrentProcess(null);// Libera CPU
 
     }
-    
-    // Para crear un catalogo para luego crear el proceso
-    public Catalog createCatalogForProcess(IOAction action, String name,String newName, int blocksQuantity, int user, String resourceType){
-        Catalog processCatalog = new Catalog(name, newName, blocksQuantity, user, resourceType);
 
-        if (action == IOAction.Create) {
-            System.out.println("Creando recurso: " + name);
-        } else if (action == IOAction.Update) {
-            System.out.println("Actualizando recurso: " + name + " -> " + newName);
-        } else if (action == IOAction.Delete) {
-            System.out.println("Eliminando recurso: " + name);
+    // Para crear un catalogo para luego crear el proceso
+    public Catalog createCatalogForProcess(IOAction action, String nameOfDirectory, String name, String newName, int blocksQuantity, int user, String resourceType) {
+        Catalog processCatalog = new Catalog(nameOfDirectory, name, newName, blocksQuantity, user, resourceType);
+
+        if (null != action) switch (action) {
+            case CREATE_FILE:
+                System.out.println("Creando recurso: " + name);
+                break;
+            case UPDATE_FILE:
+                System.out.println("Actualizando recurso: " + name + " -> " + newName);
+                break;
+            case DELETE_FILE:
+                System.out.println("Eliminando recurso: " + name);
+                break;
+            default:
+                break;
         }
 
         return processCatalog;
     }
-    
 
     // Getters y Setters
     public CPU getCpu() {
@@ -329,6 +335,10 @@ public class OperatingSystem extends Thread {
 
     public RealTimeClock getClock() {
         return clock;
+    }
+    
+    public FileSystem getFileSystem() {
+        return this.fileSystem;
     }
 
     /**

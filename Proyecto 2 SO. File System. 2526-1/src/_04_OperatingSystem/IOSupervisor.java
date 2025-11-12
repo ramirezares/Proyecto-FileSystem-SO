@@ -8,10 +8,8 @@ package _04_OperatingSystem;
  *
  * @author AresR
  */
-public enum IOAction {
-    CREATE_FILE,
-    UPDATE_FILE,
-    DELETE_FILE,
-    CREATE_DIR,
-    DELETE_DIR,
+public class IOSupervisor {
+    
+    // se encarga de la planificación y estado de los ficheros
+    
 }

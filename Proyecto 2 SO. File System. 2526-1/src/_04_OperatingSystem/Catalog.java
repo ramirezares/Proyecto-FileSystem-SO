@@ -10,18 +10,28 @@ package _04_OperatingSystem;
  */
 public class Catalog {
     
+    private String nameOfDirectory;
     private String name;
     private String newName;
     private int blocksQuantity;
     private int user;
     private String resourceType;
 
-    public Catalog(String name, String newName, int blocksQuantity, int user, String resourceType) {
+    public Catalog(String nameOfDirectory, String name, String newName, int blocksQuantity, int user, String resourceType) {
+        this.nameOfDirectory = nameOfDirectory;
         this.name = name;
         this.newName = newName;
         this.blocksQuantity = blocksQuantity;
         this.user = user;
         this.resourceType = resourceType;
+    }
+
+    public String getNameOfDirectory() {
+        return nameOfDirectory;
+    }
+
+    public void setNameOfDirectory(String nameOfDirectory) {
+        this.nameOfDirectory = nameOfDirectory;
     }
 
     public String getName() {

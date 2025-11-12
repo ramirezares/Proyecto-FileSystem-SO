@@ -4,6 +4,7 @@
  */
 package _03_LowLevelAbstractions;
 
+import _04_OperatingSystem.FileSystem;
 import static java.lang.Thread.MAX_PRIORITY;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -27,7 +28,8 @@ public class RealTimeClock extends Thread {
     private volatile boolean paused = false;
 
     private final CPU cpuTarget; // Referencia al hilo CPU que debe notificar
-    private final DMA dmaTarget; // Referencia al hilo CPU que debe notificar
+    private final DMA dmaTarget; // Referencia al hilo DMA que debe notificar
+    private final FileSystem fileSystemReference; // Referencia al hilo File System que debe notificar
     private Runnable onTickListener;// callback externo
 
     /**
@@ -39,9 +41,10 @@ public class RealTimeClock extends Thread {
      * @param duration Duración indicada del ciclo en ms. Usará 1000ms por
      * defecto
      */
-    public RealTimeClock(CPU cpuTarget, DMA dmaTarget, long duration) {
+    public RealTimeClock(CPU cpuTarget, DMA dmaTarget, FileSystem fileSystemReference, long duration) {
         this.cpuTarget = cpuTarget;
         this.dmaTarget = dmaTarget;
+        this.fileSystemReference = fileSystemReference;
         this.clockDuration = duration > 0 ? duration : DEFAULT_DURATION;
         RealTimeClock.totalCyclesElapsed = new AtomicLong(0);
         setName("Thread del Reloj");
@@ -80,6 +83,11 @@ public class RealTimeClock extends Thread {
                 if (onTickListener != null) {
                     onTickListener.run(); // notifica al simulador
                 }
+                if (!this.fileSystemReference.getPetitions().isEmpty()
+                            || this.fileSystemReference.getCurrentPetition() != null) {
+                        this.fileSystemReference.executeIOOperation();
+                    }
+                
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 this.isRunning = false;

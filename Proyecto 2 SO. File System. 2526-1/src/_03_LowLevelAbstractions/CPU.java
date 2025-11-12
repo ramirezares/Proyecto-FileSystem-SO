@@ -4,6 +4,7 @@
  */
 package _03_LowLevelAbstractions;
 
+import _04_OperatingSystem.FileSystem;
 import _04_OperatingSystem.OperatingSystem;
 import _04_OperatingSystem.Process1;
 import _04_OperatingSystem.ProcessType;
@@ -23,7 +24,7 @@ public class CPU extends Thread {
     // Contadores de ciclo CPU para planificacion
     private int cycleCounter;
     private int remainingCycles;
-    
+
     // Proceso que se está ejecutando
     // Si es null, el SO está en control.
     private Process1 currentProcess;
@@ -74,6 +75,18 @@ public class CPU extends Thread {
             syncMonitor.notify();
         }
     }
+    
+    // Helper para imprimir el estado actual del disco y la tabla
+    public static void printSystemState(FileSystem fs) {
+        System.out.println("\n" + "=".repeat(80));
+        // Imprime la Simulación de Disco (SD)
+        System.out.println(fs.getDisk().toString());
+        // Imprime la Tabla de Asignación
+        System.out.println(fs.getAllocationTable().toString());
+        System.out.println("=".repeat(80) + "\n");
+        fs.getDiskHandler().getRootDirectory().printDirectoryTree();
+    }
+    
 
     /**
      * Metodo principal para ejecutar un proceso en CPU
@@ -85,6 +98,9 @@ public class CPU extends Thread {
         while (isProcessRunning) {
             synchronized (syncMonitor) {
                 try {
+                    
+                    printSystemState(this.osReference.getFileSystem());
+                    
                     if (currentProcess != null && currentProcess.getState() == Process1.State.NEW) {
                         currentProcess.start();
                     }
@@ -100,12 +116,11 @@ public class CPU extends Thread {
                     // Si hay un proceso se ejecutara 
                     if (currentProcess != null) {
                         this.currentMode = "Modo usuario";
-                        System.out.println("\n[Ciclo " + this.cycleCounter + "] Ejecutando PID " + currentProcess.getPID()
-                                + " (Quantum Restante: " + (remainingCycles > 0 ? remainingCycles : "N/A") + ")");
+                        System.out.println("\n[CPU] Ejecutando PID " + currentProcess.getPID());
 
                         this.PC++; // Incrementa el contador PC
                         this.MAR++; // Incrementa el contador MAR
-                        
+
                         // Proceso de Usuario
                         if (currentProcess != null) {
                             currentProcess.executeOneCycle(); // Ejecutar una instrucción del proceso
@@ -114,9 +129,9 @@ public class CPU extends Thread {
                         // Lee el resultado de la ejecucion
                         boolean processWantsToContinue = true;
                         if (currentProcess != null) {
-                        processWantsToContinue = currentProcess.didExecuteSuccessfully();
+                            processWantsToContinue = currentProcess.didExecuteSuccessfully();
                         }
-                        
+
                         // Actualizacion de Quantum
                         if (remainingCycles > 0) {
                             remainingCycles--;
@@ -138,7 +153,7 @@ public class CPU extends Thread {
                                 this.osReference.terminateProcess();
                             } // Si el proceso no ha terminado sus instrucciones pero "no quiere continuar" es que necesita una operacion E/S
                             else {
-                                System.out.println("CPU: Proceso requiere E/S. Desalojo y Notifico a SO.");
+                                System.out.println("[CPU] Proceso requiere E/S. Desalojo y Notifico a SO.");
                                 this.currentMode = "Modo kernel";
                                 this.osReference.manageIORequest();
                             }
@@ -146,6 +161,12 @@ public class CPU extends Thread {
 
                         // Si es null se ejecutara el SO
                     } else {
+//                        System.out.println("Ultimo en la cola de procesos terminados");
+//                        if (this.osReference.getTerminatedQueue().GetpLast() != null) {
+//                            Process1 p = (Process1) this.osReference.getTerminatedQueue().GetpLast().GetData();
+//                            System.out.println(p.getPID());
+//                        }
+
                         this.currentMode = "Modo kernel";
                         this.osReference.notifyOS();
                     }

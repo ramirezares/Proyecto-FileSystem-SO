@@ -123,7 +123,7 @@ public class Process1 extends Thread {
                         this.executedInstructions = this.executedInstructions + 1;
                         this.remainingInstructions = this.remainingInstructions - 1;
 
-                        System.out.println("[" + this.name + "] Ejecutando: PC=" + this.PC + "/" + this.totalInstructions + ". MAR=" + this.MAR);
+                        System.out.println("[" + this.name + "] Ejecutando");
                         this.executedSuccessfully = true;
 
                         /**

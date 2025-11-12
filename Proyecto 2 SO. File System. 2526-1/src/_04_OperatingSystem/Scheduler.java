@@ -67,7 +67,7 @@ public class Scheduler {
         nextProcess.setPState(ProcessState.RUNNING);
         this.osReference.getReadyQueue().delNodewithVal(nextProcess);
 
-        System.out.println("Seleccionado el proceso " + nextProcess.getPID() + " para ejecutarse");
+        //System.out.println("Seleccionado el proceso " + nextProcess.getPID() + " para ejecutarse");
         this.logEvent("Proceso " + nextProcess.getPName() + " seleccionado para ejecutarse en el CPU");
         return nextProcess;
     }
@@ -108,7 +108,7 @@ public class Scheduler {
                 sortHRRN();
                 break;
         }
-        System.out.println("Cola de listos reordenada con política " + currentPolicy);
+        //System.out.println("Cola de listos reordenada con política " + currentPolicy);
         this.isOrdered = true;
     }
 
@@ -250,7 +250,7 @@ public class Scheduler {
         // Admite un proceso si hay 25% de espacio en MP y el sistema no esta full de procesos
         if (this.osReference.getMp().admiteNewProcess() && !this.osReference.getDma().getNewProcesses().isEmpty()) {
 
-            System.out.println("Planificador a largo plazo: admisión normal");
+            //System.out.println("Planificador a largo plazo: admisión normal");
             // Utilizara simplemente el FIFO
             Process1 newProcessToMP = (Process1) this.osReference.getDma().getNewProcesses().GetpFirst().GetData();
 
@@ -259,7 +259,7 @@ public class Scheduler {
 
             // Si no hay espacio en memoria
             if (baseDirection == -1) {
-                System.out.println("No hay espacio contiguo suficiente (" + newProcessToMP.getTotalInstructions() + " unidades) en la Memoria Principal para planificarlo desde el Largo plazo.");
+                //System.out.println("No hay espacio contiguo suficiente (" + newProcessToMP.getTotalInstructions() + " unidades) en la Memoria Principal para planificarlo desde el Largo plazo.");
                 // Si no hay espacio no se hace nada
 
                 // Considerar la cola de listo suspendidos. Por ahora solo listo por simplicidad 
@@ -279,7 +279,7 @@ public class Scheduler {
 
                 // Notificar al planificador
                 this.setIsOrdered(false);
-                System.out.println("PID " + newProcessToMP.getPName() + " admitido en la Memoria Principal. Enviando a cola de listos.");
+                //System.out.println("PID " + newProcessToMP.getPName() + " admitido en la Memoria Principal. Enviando a cola de listos.");
                 this.logEvent("Proceso " + newProcessToMP.getPName() + " enviado a cola de listos.");
             }
         }
@@ -301,7 +301,7 @@ public class Scheduler {
 
         this.isOrdered = false; // Para que vuelva a ordenar la cola por el cambio de politica
 
-        System.out.println("Política cambiada a " + newPolicy);
+        //System.out.println("Política cambiada a " + newPolicy);
     }
 
     public int getQuantum() {

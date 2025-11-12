@@ -8,10 +8,10 @@ package _04_OperatingSystem;
  *
  * @author AresR
  */
-public enum IOAction {
-    CREATE_FILE,
-    UPDATE_FILE,
-    DELETE_FILE,
-    CREATE_DIR,
-    DELETE_DIR,
+public enum DiskPolicyType {
+    FIFO,
+    LIFO,
+    SSTF, // Shortest Service Time First / Primero el de tiempo de servicio más corto
+    SCAN  // Recorrido del disco bidireccional / "Ascensor"
+    
 }

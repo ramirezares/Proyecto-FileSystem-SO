@@ -17,7 +17,7 @@ public class MainMemory {
     // En el diseño consideramos que el SO tiene una parte de la memoria principal que nunca se 
     // coloca a disposicion de los procesos, ya que es reservada para el sistema.
     
-    private final int MEMORY_SIZE = 5; // Probare con 2 para ver los procesos nuevos
+    private final int MEMORY_SIZE = 5; // Probare con 5 para ver los procesos nuevos
     private boolean[] memorySlots; // true = ocupado, false = libre
     
     // Para poder referenciar los metodos del SO
