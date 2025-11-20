@@ -30,6 +30,7 @@ public class OperatingSystem extends Thread {
     private SimpleList<Process1> readyQueue;
     private SimpleList<Process1> blockedQueue;
     private SimpleList<Process1> terminatedQueue;
+    private SimpleList<Process1> allProcessesQueue;
 
     // Para sincronización
     private final Object osMonitor = new Object();
@@ -136,7 +137,7 @@ public class OperatingSystem extends Thread {
         int baseDirection = this.mp.isSpaceAvailable(1);
 
         Process1 newProcess;
-
+        
         // Si no hay espacio en memoria
         if (baseDirection == -1) {
             String name = "Proceso de " + catalog.getName() + ".";
@@ -163,6 +164,8 @@ public class OperatingSystem extends Thread {
             this.scheduler.setIsOrdered(false);
             System.out.println("Proceso " + newProcess.getPName() + " admitido en la Memoria Principal. Enviando a cola de listos");
         }
+        // Lo añado a la cola de todos los procesos
+        this.allProcessesQueue.insertLast(newProcess);
     }
 
     public void dispatchProcess() {
@@ -328,6 +331,10 @@ public class OperatingSystem extends Thread {
     public void setTerminatedQueue(SimpleList<Process1> terminatedQueue) {
         this.terminatedQueue = terminatedQueue;
     }
+    
+    public SimpleList<Process1> getAllProcessesQueue() {
+        return this.allProcessesQueue;
+    }    
 
     public void notifyNewProcessArrival(Scheduler scheduler) {
         scheduler.setIsOrdered(false);
