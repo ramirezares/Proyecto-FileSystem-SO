@@ -9,6 +9,7 @@ package _04_OperatingSystem;
  * @author AresR
  */
 public enum IOAction {
+    READ_FILE,
     CREATE_FILE,
     UPDATE_FILE,
     DELETE_FILE,

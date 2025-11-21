@@ -134,6 +134,8 @@ public class FileSystem extends Thread {
                                 // Opcional: Manejar el fallo (ej. loggear, notificar al proceso)
                                 System.err.println("[FileSystem] DiskHandler falló al ejecutar la petición para el proceso: " + this.currentPetition.getProcessreference().getPID());
                             }
+                            
+                            // Aqui se puede mostrar el mensaje
 
                             // Para darselo al Sistema operativo
                             Process1 terminatedProcess = this.currentPetition.getProcessreference();

@@ -89,6 +89,10 @@ public class File {
             Block block = (Block) node.GetData();
             
             text.append(block.getBlockID());
+            Block pLast = (Block) this.listOfBlocks.GetpLast().GetData();
+            if(!pLast.equals(block)){
+                text.append(",");
+            }
         
         }
         

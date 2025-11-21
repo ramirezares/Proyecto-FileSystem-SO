@@ -32,8 +32,6 @@ public class Main {
         FileSystem fs = os.getFileSystem();;
         
         // --- INICIO DE PRUEBAS ---
-        // Damos tiempo a que los hilos se procesen (OS -> CPU -> I/O Request -> DMA -> FileSystem)
-        int aLittleWhile = 500; // ms
 
         // 3. PRUEBA 1: Crear un directorio para User 1
         System.out.println(">>> PRUEBA 1: Admin (U0) crea directorio 'User1Docs' para User 1 en 'root'");
@@ -47,6 +45,13 @@ public class Main {
         System.out.println(">>> PRUEBA 2: User 1 crea 'fileA.txt' (3 bloques) en 'root/User1Docs'");
         Catalog cat2 = os.createCatalogForProcess(IOAction.CREATE_FILE, "root/User1Docs", "fileA.txt", "", 3, 1, "File");
         os.newProcess(IOAction.CREATE_FILE, cat2);
+        
+        // 4. PRUEBA 2: User 1 crea un archivo en su directorio 'User1Docs'
+        System.out.println(">>> PRUEBA 2: User 1 crea 'fileA.txt' (3 bloques) en 'root/User1Docs'");
+        Catalog cat31 = os.createCatalogForProcess(IOAction.READ_FILE, "root/User1Docs", "fileA.txt", "", 3, 1, "File");
+        os.newProcess(IOAction.READ_FILE, cat31);
+        
+        
         
 
         // 5. PRUEBA 3: User 2 crea su propio directorio

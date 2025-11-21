@@ -7,6 +7,7 @@ package _04_OperatingSystem;
 import _02_DataStructures.SimpleList;
 import _02_DataStructures.SimpleNode;
 import _03_LowLevelAbstractions.Disk;
+import javax.swing.JOptionPane;
 
 /**
  *
@@ -85,6 +86,9 @@ public class DiskHandler extends Thread {
         }
 
         switch (action) {
+            case READ_FILE:
+                return readFile(catalog, parentDirectory);
+            
             case CREATE_FILE:
                 // El catalogo debe traer la info: nombre, tamaño (blocksQuantity), directorio 
                 // y siempre trae usuario

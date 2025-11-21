@@ -49,6 +49,7 @@ public class OperatingSystem extends Thread {
         this.readyQueue = new SimpleList<Process1>();
         this.blockedQueue = new SimpleList<Process1>();
         this.terminatedQueue = new SimpleList<Process1>();
+        this.allProcessesQueue = new SimpleList<Process1>();
         this.clock = new RealTimeClock(this.cpu, this.dma, this.fileSystem, 2000);
 
     }
