@@ -12,7 +12,6 @@ import _03_LowLevelAbstractions.RealTimeClock;
 import static _04_OperatingSystem.IOAction.CREATE_FILE;
 import static _04_OperatingSystem.IOAction.DELETE_FILE;
 import static _04_OperatingSystem.IOAction.UPDATE_FILE;
-import static java.lang.String.format;
 import java.util.Random;
 
 /**
@@ -385,38 +384,38 @@ public class OperatingSystem extends Thread {
         this.allProcessesQueue.insertLast(newProcess);
     }
     
-    public void createRandomFiles(int userID){
-        // Crear un directorio para el usuario
-        //
-        Catalog cat1 = this.createCatalogForProcess(IOAction.CREATE_DIR, "root", "User1Docs", "", 0, userID, "Directory");
-        // Creamos el proceso en el OS
-        this.newProcess(IOAction.CREATE_DIR, cat1);
-        
-
-        // Crear un archivo en su directorio 'User1Docs'
-        Catalog cat2 = this.createCatalogForProcess(IOAction.CREATE_FILE, "root/Users", "fileA.txt", "", 3, userID, "File");
-        this.newProcess(IOAction.CREATE_FILE, cat2);
-        
-        // 4. PRUEBA 2: User 1 crea un archivo en su directorio 'User1Docs'
-        System.out.println(">>> PRUEBA 2: User 1 crea 'fileA.txt' (3 bloques) en 'root/User1Docs'");
-        Catalog cat31 = this.createCatalogForProcess(IOAction.READ_FILE, "root/User1Docs", "fileA.txt", "", 3, userID, "File");
-        this.newProcess(IOAction.READ_FILE, cat31);
-        
-        // 5. PRUEBA 3: User 2 crea su propio directorio
-        System.out.println(">>> PRUEBA 3: Admin (U0) crea directorio 'User2Docs' para User 2 en 'root'");
-        Catalog cat3 = this.createCatalogForProcess(IOAction.CREATE_DIR, "root", "User2Docs", "", 0, userID, "Directory");
-        this.newProcess(IOAction.CREATE_DIR, cat3);
-        
-        // 6. PRUEBA 4: User 2 crea un archivo grande en su directorio
-        System.out.println(">>> PRUEBA 4: User 2 crea 'data.bin' (8 bloques) en 'root/User2Docs'");
-        Catalog cat4 = this.createCatalogForProcess(IOAction.CREATE_FILE, "root/User2Docs", "data.bin", "", 8, userID, "File");
-        this.newProcess(IOAction.CREATE_FILE, cat4);
-        
-        
-        // 7. PRUEBA 5: (PERMISO DENEGADO) User 1 intenta crear un archivo en el directorio de User 2
-        System.out.println(">>> PRUEBA 5: User 1 intenta crear 'hack.txt' en 'root/User2Docs' (DEBE FALLAR)");
-        Catalog cat5 = this.createCatalogForProcess(IOAction.CREATE_FILE, "root/User2Docs", "hack.txt", "", 2, userID, "File"); // User 1 (ID: 1)
-        this.newProcess(IOAction.CREATE_FILE, cat5);
-
-    }
+//    public void createRandomFiles(int userID){
+//        // Crear un directorio para el usuario
+//        //
+//        Catalog cat1 = this.createCatalogForProcess(IOAction.CREATE_DIR, "root", "User1Docs", "", 0, userID, "Directory");
+//        // Creamos el proceso en el OS
+//        this.newProcess(IOAction.CREATE_DIR, cat1);
+//        
+//
+//        // Crear un archivo en su directorio 'User1Docs'
+//        Catalog cat2 = this.createCatalogForProcess(IOAction.CREATE_FILE, "root/Users", "fileA.txt", "", 3, userID, "File");
+//        this.newProcess(IOAction.CREATE_FILE, cat2);
+//        
+//        // 4. PRUEBA 2: User 1 crea un archivo en su directorio 'User1Docs'
+//        System.out.println(">>> PRUEBA 2: User 1 crea 'fileA.txt' (3 bloques) en 'root/User1Docs'");
+//        Catalog cat31 = this.createCatalogForProcess(IOAction.READ_FILE, "root/User1Docs", "fileA.txt", "", 3, userID, "File");
+//        this.newProcess(IOAction.READ_FILE, cat31);
+//        
+//        // 5. PRUEBA 3: User 2 crea su propio directorio
+//        System.out.println(">>> PRUEBA 3: Admin (U0) crea directorio 'User2Docs' para User 2 en 'root'");
+//        Catalog cat3 = this.createCatalogForProcess(IOAction.CREATE_DIR, "root", "User2Docs", "", 0, userID, "Directory");
+//        this.newProcess(IOAction.CREATE_DIR, cat3);
+//        
+//        // 6. PRUEBA 4: User 2 crea un archivo grande en su directorio
+//        System.out.println(">>> PRUEBA 4: User 2 crea 'data.bin' (8 bloques) en 'root/User2Docs'");
+//        Catalog cat4 = this.createCatalogForProcess(IOAction.CREATE_FILE, "root/User2Docs", "data.bin", "", 8, userID, "File");
+//        this.newProcess(IOAction.CREATE_FILE, cat4);
+//        
+//        
+//        // 7. PRUEBA 5: (PERMISO DENEGADO) User 1 intenta crear un archivo en el directorio de User 2
+//        System.out.println(">>> PRUEBA 5: User 1 intenta crear 'hack.txt' en 'root/User2Docs' (DEBE FALLAR)");
+//        Catalog cat5 = this.createCatalogForProcess(IOAction.CREATE_FILE, "root/User2Docs", "hack.txt", "", 2, userID, "File"); // User 1 (ID: 1)
+//        this.newProcess(IOAction.CREATE_FILE, cat5);
+//
+//    }
 }
