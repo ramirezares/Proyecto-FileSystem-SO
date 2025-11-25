@@ -9,6 +9,10 @@ import _03_LowLevelAbstractions.CPU;
 import _03_LowLevelAbstractions.DMA;
 import _03_LowLevelAbstractions.MainMemory;
 import _03_LowLevelAbstractions.RealTimeClock;
+import static _04_OperatingSystem.IOAction.CREATE_FILE;
+import static _04_OperatingSystem.IOAction.DELETE_FILE;
+import static _04_OperatingSystem.IOAction.UPDATE_FILE;
+import static java.lang.String.format;
 import java.util.Random;
 
 /**
@@ -132,43 +136,6 @@ public class OperatingSystem extends Thread {
         System.out.println("SO: Hilo del Sistema Operativo detenido.");
     }
 
-    public void newProcess(IOAction action, Catalog catalog) {
-
-        // Verifico y obtengo la dirección base usando las instrucciones totales como tamaño
-        int baseDirection = this.mp.isSpaceAvailable(1);
-
-        Process1 newProcess;
-        
-        // Si no hay espacio en memoria
-        if (baseDirection == -1) {
-            String name = "Proceso de " + catalog.getName() + ".";
-            newProcess = new Process1(name, -1, action, catalog);
-            System.out.println("No hay espacio contiguo suficiente (" + 1 + " unidades) en la Memoria Principal para el proceso " + newProcess.getPName() + ". Proceso no admitido en el sistema. Enviando a cola de nuevos");
-            //Agregar a la cola de nuevos del dma
-            this.dma.addNewProcess(newProcess);
-
-            // Si hay espacio
-        } else {
-            String name = "Proceso de " + catalog.getName() + ".";
-            //Crear el objeto Process con la dirección base encontrada
-            newProcess = new Process1(name, baseDirection, action, catalog);
-            // Coloco el proceso en listo
-            newProcess.setPState(ProcessState.READY);
-
-            //Agregar a la cola de listos 
-            this.readyQueue.insertLast(newProcess);
-
-            // Asignar el espacio en la memoria principal (Actualiza el array memorySlots)
-            this.mp.allocate(baseDirection, 1);
-
-            // Notificar al planificador
-            this.scheduler.setIsOrdered(false);
-            System.out.println("Proceso " + newProcess.getPName() + " admitido en la Memoria Principal. Enviando a cola de listos");
-        }
-        // Lo añado a la cola de todos los procesos
-        this.allProcessesQueue.insertLast(newProcess);
-    }
-
     public void dispatchProcess() {
 
         // Escoger uno nuevo con el planificador
@@ -253,27 +220,6 @@ public class OperatingSystem extends Thread {
         this.getTerminatedQueue().insertLast(terminatedProcess); //Mando el proceso a listos
         this.getCpu().setCurrentProcess(null);// Libera CPU
 
-    }
-
-    // Para crear un catalogo para luego crear el proceso
-    public Catalog createCatalogForProcess(IOAction action, String nameOfDirectory, String name, String newName, int blocksQuantity, int user, String resourceType) {
-        Catalog processCatalog = new Catalog(nameOfDirectory, name, newName, blocksQuantity, user, resourceType);
-
-        if (null != action) switch (action) {
-            case CREATE_FILE:
-                System.out.println("Creando recurso: " + name);
-                break;
-            case UPDATE_FILE:
-                System.out.println("Actualizando recurso: " + name + " -> " + newName);
-                break;
-            case DELETE_FILE:
-                System.out.println("Eliminando recurso: " + name);
-                break;
-            default:
-                break;
-        }
-
-        return processCatalog;
     }
 
     // Getters y Setters
@@ -377,5 +323,100 @@ public class OperatingSystem extends Thread {
         synchronized (osMonitor) {
             osMonitor.notify();
         }
+    }
+    
+    // Funciones importantes
+    
+    // Para crear un catalogo para luego crear el proceso
+    public Catalog createCatalogForProcess(IOAction action, String nameOfDirectory, String name, String newName, int blocksQuantity, int user, String resourceType) {
+        Catalog processCatalog = new Catalog(nameOfDirectory, name, newName, blocksQuantity, user, resourceType);
+
+        if (null != action) switch (action) {
+            case CREATE_FILE:
+                System.out.println("Creando recurso: " + name);
+                break;
+            case UPDATE_FILE:
+                System.out.println("Actualizando recurso: " + name + " -> " + newName);
+                break;
+            case DELETE_FILE:
+                System.out.println("Eliminando recurso: " + name);
+                break;
+            default:
+                break;
+        }
+
+        return processCatalog;
+    }
+    
+    public void newProcess(IOAction action, Catalog catalog) {
+
+        // Verifico y obtengo la dirección base usando las instrucciones totales como tamaño
+        int baseDirection = this.mp.isSpaceAvailable(1);
+
+        Process1 newProcess;
+        
+        // Si no hay espacio en memoria
+        if (baseDirection == -1) {
+            String name = "Proceso de " + catalog.getName() + ".";
+            newProcess = new Process1(name, -1, action, catalog);
+            System.out.println("No hay espacio contiguo suficiente (" + 1 + " unidades) en la Memoria Principal para el proceso " + newProcess.getPName() + ". Proceso no admitido en el sistema. Enviando a cola de nuevos");
+            //Agregar a la cola de nuevos del dma
+            this.dma.addNewProcess(newProcess);
+
+            // Si hay espacio
+        } else {
+            String name = "Proceso de " + catalog.getName() + ".";
+            //Crear el objeto Process con la dirección base encontrada
+            newProcess = new Process1(name, baseDirection, action, catalog);
+            // Coloco el proceso en listo
+            newProcess.setPState(ProcessState.READY);
+
+            //Agregar a la cola de listos 
+            this.readyQueue.insertLast(newProcess);
+
+            // Asignar el espacio en la memoria principal (Actualiza el array memorySlots)
+            this.mp.allocate(baseDirection, 1);
+
+            // Notificar al planificador
+            this.scheduler.setIsOrdered(false);
+            System.out.println("Proceso " + newProcess.getPName() + " admitido en la Memoria Principal. Enviando a cola de listos");
+        }
+        // Lo añado a la cola de todos los procesos
+        this.allProcessesQueue.insertLast(newProcess);
+    }
+    
+    public void createRandomFiles(int userID){
+        // Crear un directorio para el usuario
+        //
+        Catalog cat1 = this.createCatalogForProcess(IOAction.CREATE_DIR, "root", "User1Docs", "", 0, userID, "Directory");
+        // Creamos el proceso en el OS
+        this.newProcess(IOAction.CREATE_DIR, cat1);
+        
+
+        // Crear un archivo en su directorio 'User1Docs'
+        Catalog cat2 = this.createCatalogForProcess(IOAction.CREATE_FILE, "root/Users", "fileA.txt", "", 3, userID, "File");
+        this.newProcess(IOAction.CREATE_FILE, cat2);
+        
+        // 4. PRUEBA 2: User 1 crea un archivo en su directorio 'User1Docs'
+        System.out.println(">>> PRUEBA 2: User 1 crea 'fileA.txt' (3 bloques) en 'root/User1Docs'");
+        Catalog cat31 = this.createCatalogForProcess(IOAction.READ_FILE, "root/User1Docs", "fileA.txt", "", 3, userID, "File");
+        this.newProcess(IOAction.READ_FILE, cat31);
+        
+        // 5. PRUEBA 3: User 2 crea su propio directorio
+        System.out.println(">>> PRUEBA 3: Admin (U0) crea directorio 'User2Docs' para User 2 en 'root'");
+        Catalog cat3 = this.createCatalogForProcess(IOAction.CREATE_DIR, "root", "User2Docs", "", 0, userID, "Directory");
+        this.newProcess(IOAction.CREATE_DIR, cat3);
+        
+        // 6. PRUEBA 4: User 2 crea un archivo grande en su directorio
+        System.out.println(">>> PRUEBA 4: User 2 crea 'data.bin' (8 bloques) en 'root/User2Docs'");
+        Catalog cat4 = this.createCatalogForProcess(IOAction.CREATE_FILE, "root/User2Docs", "data.bin", "", 8, userID, "File");
+        this.newProcess(IOAction.CREATE_FILE, cat4);
+        
+        
+        // 7. PRUEBA 5: (PERMISO DENEGADO) User 1 intenta crear un archivo en el directorio de User 2
+        System.out.println(">>> PRUEBA 5: User 1 intenta crear 'hack.txt' en 'root/User2Docs' (DEBE FALLAR)");
+        Catalog cat5 = this.createCatalogForProcess(IOAction.CREATE_FILE, "root/User2Docs", "hack.txt", "", 2, userID, "File"); // User 1 (ID: 1)
+        this.newProcess(IOAction.CREATE_FILE, cat5);
+
     }
 }

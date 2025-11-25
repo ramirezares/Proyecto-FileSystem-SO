@@ -77,7 +77,7 @@ public class Process1 extends Thread {
         this.type = ProcessType.IO_BOUND;
         this.state = ProcessState.NEW;
         this.cyclesToGenerateException = 1;
-        this.cyclesToManageException = 4;
+        this.cyclesToManageException = 6;
         this.ExceptionManaged = false;
         this.baseDirection = baseDirection;
         this.executedSuccessfully = true;

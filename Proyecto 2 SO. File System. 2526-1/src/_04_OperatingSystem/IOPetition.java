@@ -14,12 +14,12 @@ public class IOPetition {
     
     Catalog catalog;
     
-    Process1 Processreference;
+    Process1 processReference;
 
     public IOPetition(IOAction action, Catalog catalog, Process1 Processreference) {
         this.action = action;
         this.catalog = catalog;
-        this.Processreference = Processreference;
+        this.processReference = Processreference;
     }
 
     public IOAction getAction() {
@@ -38,12 +38,12 @@ public class IOPetition {
         this.catalog = catalog;
     }
 
-    public Process1 getProcessreference() {
-        return Processreference;
+    public Process1 getProcessReference() {
+        return processReference;
     }
 
-    public void setProcessreference(Process1 Processreference) {
-        this.Processreference = Processreference;
+    public void setProcessReference(Process1 processReference) {
+        this.processReference = processReference;
     }
     
 }

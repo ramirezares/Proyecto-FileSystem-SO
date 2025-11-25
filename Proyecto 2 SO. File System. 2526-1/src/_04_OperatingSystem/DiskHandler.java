@@ -22,9 +22,9 @@ public class DiskHandler extends Thread {
 
     private Directory rootDirectory; // Directorio base
 
-    // Log para cuando una operacion no se puede hacer (Error)
-    
+    private int lastBlockReferenced;
 
+    // Log para cuando una operacion no se puede hacer (Error)
     // ----- Métodos ----- 
     /**
      * Constructor.
@@ -38,7 +38,7 @@ public class DiskHandler extends Thread {
         this.allocationTable = allocationTable;
         this.rootDirectory = new Directory("root", null, 0);
     }
-    
+
     private boolean hasPermission(Directory directory, int userId) {
         if (userId == 0) {
             return true; // Admin siempre tiene permiso
@@ -49,11 +49,9 @@ public class DiskHandler extends Thread {
         if (directory.getUser() == userId) {
             return true; // Es el propietario del directorio
         }
-        
+
         // Si no cumple nada, no tiene permiso
-        
         // Colocar para el logger
-        
         System.err.println("DiskHandler: Permiso denegado. Usuario " + userId + " no tiene acceso a " + directory.getFullPath());
         return false;
     }
@@ -74,7 +72,7 @@ public class DiskHandler extends Thread {
 
         // Busco el directorio usando la ruta del catálogo
         Directory parentDirectory = findDirectoryByPath(nameOfDirectory);
-        
+
         if (parentDirectory == null) {
             System.err.println("DiskHandler: No se encontró el directorio en la ruta: " + nameOfDirectory);
             return false;
@@ -88,7 +86,7 @@ public class DiskHandler extends Thread {
         switch (action) {
             case READ_FILE:
                 return readFile(catalog, parentDirectory);
-            
+
             case CREATE_FILE:
                 // El catalogo debe traer la info: nombre, tamaño (blocksQuantity), directorio 
                 // y siempre trae usuario
@@ -98,7 +96,7 @@ public class DiskHandler extends Thread {
                 // El catalogo debe traer la info: nombre del archivo a borrar, directorio
                 return deleteFile(catalog, parentDirectory);
 
-            case UPDATE_FILE: 
+            case UPDATE_FILE:
                 // El catalogo debe traer la info: nombre actual y newName, directorio
                 return updateFile(catalog, parentDirectory);
 
@@ -127,7 +125,6 @@ public class DiskHandler extends Thread {
         }
 
         // Ya verificamos si tiene permiso para este directorio afuera
-        
         // Verificamos que no haya otro archivo con igual nombre
         if (parentDirectory.findFileByName(catalog.getName()) != null) {
             System.err.println("DiskHandler: Ya existe un archivo con ese nombre.");
@@ -167,10 +164,16 @@ public class DiskHandler extends Thread {
 
         // Buscamos y añadimos al directorio correspondiente
         parentDirectory.getFiles().insertLast(newFile);
+
+        // Muevo el cabezal
+        if (newFile.getFirstBlock() != null) {
+            this.lastBlockReferenced = newFile.getFirstBlock().getBlockID();
+        }
+
         System.out.println("DiskHandler: Archivo creado " + newFile.getName());
         return true; // Éxito
     }
-    
+
     /**
      * Método para leer un archivo (simulación).
      */
@@ -188,11 +191,16 @@ public class DiskHandler extends Thread {
             return false;
         }
 
+        // Muevo el cabezal
+        if (fileToRead.getFirstBlock() != null) {
+            this.lastBlockReferenced = fileToRead.getFirstBlock().getBlockID();
+        }
+
         // Simulación: Imprimir los bloques que se "leerían"
         System.out.println("DiskHandler: Leyendo archivo " + fileToRead.getName() + " en bloques: " + fileToRead.getBlocksListToString());
         return true;
     }
-    
+
     /**
      * Método para actualizar (solo renombrar) un archivo. La AllocationTable se
      * actualiza sola porque tiene la referencia
@@ -217,6 +225,11 @@ public class DiskHandler extends Thread {
         String oldName = fileToUpdate.getName();
         fileToUpdate.setName(catalog.getNewName());
 
+        // Muevo el cabezal
+        if (fileToUpdate.getFirstBlock() != null) {
+            this.lastBlockReferenced = fileToUpdate.getFirstBlock().getBlockID();
+        }
+
         System.out.println("DiskHandler: Archivo renombrado de " + oldName + " a " + catalog.getNewName());
         return true;
     }
@@ -235,38 +248,12 @@ public class DiskHandler extends Thread {
         }
 
         return deleteFileInternal(fileToDelete);
-//        
-//        if (fileToDelete.getUser() != catalog.getUser() && catalog.getUser() != 0) {
-//            System.err.println("DiskHandler: Permiso denegado. Usuario " + catalog.getUser() + " no es el propietario del archivo.");
-//            return false;
-//        }
-//
-//        
-//        // Liberamos sus bloques
-//        int releasedBlocks = 0;
-//
-//        for (SimpleNode node = fileToDelete.getListOfBlocks().GetpFirst(); node != null; node = node.GetNxt()) {
-//            Block block = (Block) node.GetData();
-//            block.setState(false); // Libre
-//            block.setFileReference(null); // Sin referencia
-//            releasedBlocks++;
-//        }
-//
-//        // Actualizamos el contador de bloques disponibles
-//        this.disk.setNumberAvailable(this.disk.getNumberAvailable() + releasedBlocks);
-//
-//        // Quitamos el archivo de la tabla de asignación
-//        this.allocationTable.getFiles().delNodewithVal(fileToDelete);
-//
-//        // Quitamos el archivo del directorio padre
-//        parentDirectory.getFiles().delNodewithVal(fileToDelete);
-//        System.out.println("DiskHandler: Archivo eliminado " + fileToDelete.getName());
-//        return true; // Éxito
     }
-    
+
     /**
-     * Método interno para eliminar un archivo (lo separe para usarlo tambien para DELETE_DIR).
-     * Libera bloques, actualiza contadores y lo quita de las listas.
+     * Método interno para eliminar un archivo (lo separe para usarlo tambien
+     * para DELETE_DIR). Libera bloques, actualiza contadores y lo quita de las
+     * listas.
      */
     private boolean deleteFileInternal(File fileToDelete) {
         // Liberamos sus bloques
@@ -287,29 +274,33 @@ public class DiskHandler extends Thread {
 
         // Quitamos el archivo del directorio padre
         fileToDelete.getParentDirectory().removeFile(fileToDelete); // Usa el método de Directory
-        
+
+        // Muevo el cabezal
+        if (fileToDelete.getFirstBlock() != null) {
+            this.lastBlockReferenced = fileToDelete.getFirstBlock().getBlockID();
+        }
+
         System.out.println("DiskHandler: Archivo eliminado " + fileToDelete.getName());
         return true; // Éxito
     }
-    
+
     /**
      * Método para crear un nuevo directorio.
      */
     private boolean createDirectory(Catalog catalog, Directory parentDirectory) {
         String newDirName = catalog.getName();
-        
+
         // Ya valide el permiso en el directorio que contiene a este en el execute
-        
         // Verifico si ya existe
         if (parentDirectory.findSubDirectoryByName(newDirName) != null) {
-             System.err.println("DiskHandler: Ya existe un directorio con el nombre " + newDirName + " en " + parentDirectory.getFullPath());
+            System.err.println("DiskHandler: Ya existe un directorio con el nombre " + newDirName + " en " + parentDirectory.getFullPath());
             return false;
         }
-        
+
         // Creo el nuevo directorio
         Directory newDir = new Directory(newDirName, parentDirectory, catalog.getUser());
         parentDirectory.addSubDirectory(newDir);
-        
+
         System.out.println("DiskHandler: Directorio creado " + newDirName + " en " + parentDirectory.getFullPath());
         return true;
     }
@@ -319,42 +310,41 @@ public class DiskHandler extends Thread {
      */
     private boolean deleteDirectory(Catalog catalog, Directory parentDirectory) {
         String dirName = catalog.getName();
-        
+
         // Encontrar el directorio a eliminar
         Directory dirToDelete = parentDirectory.findSubDirectoryByName(dirName);
         if (dirToDelete == null) {
             System.err.println("DiskHandler: No se encontró el directorio a eliminar " + dirName + " en " + parentDirectory.getFullPath());
             return false;
         }
-        
-        // Ya valide el permiso de acceso en el directorio que contiene a este en el execute
 
+        // Ya valide el permiso de acceso en el directorio que contiene a este en el execute
         // No se puede eliminar el root
         if (dirToDelete == this.rootDirectory) {
-             System.err.println("DiskHandler: Permiso denegado. No se puede eliminar el directorio root.");
-             return false;
+            System.err.println("DiskHandler: Permiso denegado. No se puede eliminar el directorio root.");
+            return false;
         }
-        
+
         // Valido si el usuario es dueño del directorio o es el admin
         if (dirToDelete.getUser() != catalog.getUser() && catalog.getUser() != 0) {
             System.err.println("DiskHandler: Permiso denegado. Usuario " + catalog.getUser() + " no es el propietario del directorio " + dirToDelete.getName());
             return false;
         }
-        
+
         // Llamo al metodo de ayuda recursivo (Esta abajo)
         deleteDirectoryRecursive(dirToDelete);
-        
+
         // Quito el directorio (ya vacío) 
         parentDirectory.removeSubDirectory(dirToDelete);
         System.out.println("DiskHandler: Directorio eliminado " + dirName);
         return true;
     }
-    
+
     /**
      * Método recursivo para borrar el contenido de un directorio.
      */
     private void deleteDirectoryRecursive(Directory dir) {
-        
+
         // Borro todos los subdirectorios recursivamente
         // Se hace un "while" en lugar de "for" porque estamos modificando la lista
         while (dir.getSubDirectories().GetpFirst() != null) {
@@ -362,7 +352,7 @@ public class DiskHandler extends Thread {
             deleteDirectoryRecursive(subDir); // Ir a lo más profundo primero
             dir.removeSubDirectory(subDir); // Eliminar el subdirectorio ya vacío
         }
-        
+
         // Borro todos los archivos
         while (dir.getFiles().GetpFirst() != null) {
             File file = (File) dir.getFiles().GetpFirst().GetData();
@@ -440,6 +430,14 @@ public class DiskHandler extends Thread {
     public Directory getRootDirectory() {
         return rootDirectory;
     }
-    
+
+    public int getLastBlockReferenced() {
+        return lastBlockReferenced;
+    }
+
+    // Setter
+    public void setLastBlockReferenced(int lastBlockReferenced) {
+        this.lastBlockReferenced = lastBlockReferenced;
+    }
 
 }
