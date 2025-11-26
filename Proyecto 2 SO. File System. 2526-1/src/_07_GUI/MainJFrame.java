@@ -1030,6 +1030,7 @@ public class MainJFrame extends javax.swing.JFrame {
 
     }//GEN-LAST:event_startSimulationActionPerformed
 
+
     private void uploadSimulationActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_uploadSimulationActionPerformed
         JFileChooser chooser = new JFileChooser();
         chooser.setDialogTitle("Cargar archivo JSON");
@@ -1053,25 +1054,41 @@ public class MainJFrame extends javax.swing.JFrame {
 
                 fileSystemItems.clear();
 
-                // Extrae el arreglo items
-                json = json.substring(json.indexOf("[") + 1, json.lastIndexOf("]"));
+                // 1️⃣ Extrae el contenido del array "items"
+                int start = json.indexOf("[");
+                int end = json.lastIndexOf("]");
 
-                String[] objects = json.split("\\},\\{");
+                if (start == -1 || end == -1) {
+                    throw new RuntimeException("Formato JSON inválido");
+                }
+
+                String itemsText = json.substring(start + 1, end).trim();
+
+                // 2️⃣ Divide objetos individualmente
+                //    Funciona aunque haya espacios o saltos de línea
+                String[] objects = itemsText.split("\\},\\s*\\{");
 
                 for (String obj : objects) {
+
+                    // Limpia llaves
                     obj = obj.replace("{", "").replace("}", "");
 
+                    // Divide campos
                     String[] fields = obj.split(",");
 
                     String name = "";
                     String user = "";
                     int blocks = 0;
 
-                    for (String field : fields) {
-                        String[] pair = field.split(":");
+                    for (String f : fields) {
+                        String[] pair = f.split(":", 2);
 
-                        String key = pair[0].replace("\"", "").trim();
-                        String value = pair[1].replace("\"", "").trim();
+                        if (pair.length < 2) {
+                            continue;
+                        }
+
+                        String key = pair[0].trim().replace("\"", "");
+                        String value = pair[1].trim().replace("\"", "");
 
                         switch (key) {
                             case "name":
@@ -1097,6 +1114,7 @@ public class MainJFrame extends javax.swing.JFrame {
                 JOptionPane.showMessageDialog(this, "Error al leer JSON: " + ex.getMessage());
             }
         }
+
     }//GEN-LAST:event_uploadSimulationActionPerformed
 
     private void resetSimulationActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_resetSimulationActionPerformed
@@ -1105,23 +1123,17 @@ public class MainJFrame extends javax.swing.JFrame {
         }
 
         // 1. Detener simulación actual
-        simulator.stopSimulation();  // o como se llame en tu clase
+    if (simulator != null) {
+        simulator.stopSimulation();
+    }
 
-        // 2. Crear un nuevo SO limpio
-        OperatingSystem newSo = new OperatingSystem();
-        simulator.setSo(newSo);  // si tienes setter, o un método reset
+    // 2. Cerrar ventana actual
+    this.dispose();
 
-        // 3. Resetear parte visual
-        resetView(); // ya existe en tu MainJFrame
-
-        // 4. Volver a actualizar vistas con el nuevo SO
-        updateFileSystemInfo(newSo);
-        updateQueues(newSo);
-
-        // 5. Restablecer estado de botones
-        startSimulation.setSelected(false);
-        startSimulation.setText("Iniciar simulación");
-        uploadSimulation.setEnabled(true);
+    // 3. Volver a abrir desde cero
+    java.awt.EventQueue.invokeLater(() -> {
+        new MainJFrame().setVisible(true);
+    });
     }//GEN-LAST:event_resetSimulationActionPerformed
 
     private void generate20ProcessActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_generate20ProcessActionPerformed
@@ -1638,6 +1650,7 @@ public class MainJFrame extends javax.swing.JFrame {
                 JOptionPane.showMessageDialog(this, "Error guardando JSON: " + ex.getMessage());
             }
         }
+
     }//GEN-LAST:event_saveSimulationActionPerformed
 
     private void politicsComboBoxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_politicsComboBoxActionPerformed
