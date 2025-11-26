@@ -139,7 +139,7 @@ public class DiskHandler extends Thread {
 
         // Creamos el archivo
         Block firstBlock = (Block) allocatedBlocks.GetpFirst().GetData();
-        File newFile = new File(
+        File_Proyect newFile = new File_Proyect(
                 catalog.getName(),
                 catalog.getBlocksQuantity(),
                 firstBlock,
@@ -178,7 +178,7 @@ public class DiskHandler extends Thread {
      */
     private boolean readFile(Catalog catalog, Directory parentDirectory) {
 
-        File fileToRead = parentDirectory.findFileByName(catalog.getName());
+        File_Proyect fileToRead = parentDirectory.findFileByName(catalog.getName());
         if (fileToRead == null) {
             System.err.println("DiskHandler: No se encontró el archivo a leer " + catalog.getName());
             return false; // Falla
@@ -207,7 +207,7 @@ public class DiskHandler extends Thread {
     private boolean updateFile(Catalog catalog, Directory parentDirectory) {
 
         // Encontramos el archivo
-        File fileToUpdate = parentDirectory.findFileByName(catalog.getName());
+        File_Proyect fileToUpdate = parentDirectory.findFileByName(catalog.getName());
 
         if (fileToUpdate == null) {
             System.err.println("DiskHandler: No se encontró el archivo a actualizar " + catalog.getName() + " en " + parentDirectory.getFullPath());
@@ -239,7 +239,7 @@ public class DiskHandler extends Thread {
     private boolean deleteFile(Catalog catalog, Directory parentDirectory) {
 
         // Encontrar el archivo
-        File fileToDelete = parentDirectory.findFileByName(catalog.getName());
+        File_Proyect fileToDelete = parentDirectory.findFileByName(catalog.getName());
 
         if (fileToDelete == null) {
             System.err.println("DiskHandler: No se encontró el archivo a eliminar " + catalog.getName() + " en " + parentDirectory.getFullPath());
@@ -254,7 +254,7 @@ public class DiskHandler extends Thread {
      * para DELETE_DIR). Libera bloques, actualiza contadores y lo quita de las
      * listas.
      */
-    private boolean deleteFileInternal(File fileToDelete) {
+    private boolean deleteFileInternal(File_Proyect fileToDelete) {
         // Liberamos sus bloques
         int releasedBlocks = 0;
 
@@ -354,7 +354,7 @@ public class DiskHandler extends Thread {
 
         // Borro todos los archivos
         while (dir.getFiles().GetpFirst() != null) {
-            File file = (File) dir.getFiles().GetpFirst().GetData();
+            File_Proyect file = (File_Proyect) dir.getFiles().GetpFirst().GetData();
             deleteFileInternal(file); // Esto libera bloques y lo quita de las listas
         }
     }
@@ -445,7 +445,7 @@ public class DiskHandler extends Thread {
     }
 
     // --- Operaciones directas para ADMIN (sin pasar por procesos) ---
-    public boolean deleteFileDirect(File fileToDelete) {
+    public boolean deleteFileDirect(File_Proyect fileToDelete) {
         if (fileToDelete == null) {
             return false;
         }

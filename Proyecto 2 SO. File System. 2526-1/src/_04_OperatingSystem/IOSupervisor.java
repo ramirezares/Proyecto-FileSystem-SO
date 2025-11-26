@@ -144,9 +144,9 @@ public class IOSupervisor {
         }
 
         // Si es una operación sobre un archivo existente, buscamos dónde empieza
-        SimpleList<File> files = table.getFiles();
+        SimpleList<File_Proyect> files = table.getFiles();
         for (SimpleNode node = files.GetpFirst(); node != null; node = node.GetNxt()) {
-            File f = (File) node.GetData();
+            File_Proyect f = (File_Proyect) node.GetData();
             if (f.getName().equals(fileName)) {
                 if (f.getFirstBlock() != null) {
                     return f.getFirstBlock().getBlockID();

@@ -17,9 +17,9 @@ public class Block {
     private boolean state;
     
     // Referencia al archivo que contiene
-    private File fileReference;
+    private File_Proyect fileReference;
 
-    public Block(int blockID, boolean state, File fileReference) {
+    public Block(int blockID, boolean state, File_Proyect fileReference) {
         this.blockID = blockID;
         this.state = state;
         this.fileReference = fileReference;
@@ -41,11 +41,11 @@ public class Block {
         this.state = state;
     }
 
-    public File getFileReference() {
+    public File_Proyect getFileReference() {
         return fileReference;
     }
 
-    public void setFileReference(File fileReference) {
+    public void setFileReference(File_Proyect fileReference) {
         this.fileReference = fileReference;
     }
     

@@ -17,7 +17,7 @@ public class Directory {
     private String name;
     private Directory parentDirectory; // Directorio padre (null si es el root)
     private SimpleList<Directory> subDirectories; // Lista de subdirectorios
-    private SimpleList<File> files; // Lista de archivos en este directorio
+    private SimpleList<File_Proyect> files; // Lista de archivos en este directorio
     private int user; // Id del usuario 
 
     // ----- Métodos ----- 
@@ -41,7 +41,7 @@ public class Directory {
      * Añade un archivo a este directorio.
      * @param file El archivo a añadir.
      */
-    public void addFile(File file) {
+    public void addFile(File_Proyect file) {
         this.files.insertLast(file);
         file.setParentDirectory(this); // Asegura que el archivo sepa quién es su padre
     }
@@ -50,7 +50,7 @@ public class Directory {
      * Elimina un archivo de este directorio.
      * @param file El archivo a eliminar.
      */
-    public void removeFile(File file) {
+    public void removeFile(File_Proyect file) {
         this.files.delNodewithVal(file); // Usando el método de tu SimpleList
     }
 
@@ -75,9 +75,9 @@ public class Directory {
      * @param name El nombre del archivo a buscar.
      * @return El objeto File si se encuentra, de lo contrario null.
      */
-    public File findFileByName(String name) {
+    public File_Proyect findFileByName(String name) {
         for (SimpleNode node = this.files.GetpFirst(); node != null; node = node.GetNxt()) {
-            File file = (File) node.GetData();
+            File_Proyect file = (File_Proyect) node.GetData();
             if (file.getName().equals(name)) {
                 return file;
             }
@@ -127,7 +127,7 @@ public class Directory {
         return subDirectories;
     }
 
-    public SimpleList<File> getFiles() {
+    public SimpleList<File_Proyect> getFiles() {
         return files;
     }
 
@@ -161,7 +161,7 @@ public class Directory {
 
         // Imprimir todos los archivos en este directorio
         for (SimpleNode node = this.files.GetpFirst(); node != null; node = node.GetNxt()) {
-            File file = (File) node.GetData();
+            File_Proyect file = (File_Proyect) node.GetData();
             System.out.println(childIndent + "- " + file.getName() + " (U" + file.getUser() + ")");
         }
 

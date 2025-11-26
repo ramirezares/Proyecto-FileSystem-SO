@@ -11,7 +11,7 @@ import _02_DataStructures.SimpleNode;
  *
  * @author AresR
  */
-public class File {
+public class File_Proyect {
     
     // Nombre
     private String name;
@@ -43,7 +43,7 @@ public class File {
      * @param parentDirectory
      * @param userID
      */
-    public File(String name, int numberOfBlocks, Block firstBlock, SimpleList<Block> listOfBlocks, Directory parentDirectory, int userID) {
+    public File_Proyect(String name, int numberOfBlocks, Block firstBlock, SimpleList<Block> listOfBlocks, Directory parentDirectory, int userID) {
         this.name = name;
         this.numberOfBlocks = numberOfBlocks;
         this.firstBlock = firstBlock;

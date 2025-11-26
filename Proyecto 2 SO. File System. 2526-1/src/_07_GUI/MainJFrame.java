@@ -14,7 +14,7 @@ import _04_OperatingSystem.Catalog;
 import _04_OperatingSystem.Directory;
 import _04_OperatingSystem.DiskHandler;
 import _04_OperatingSystem.DiskPolicyType;
-import _04_OperatingSystem.File;
+import _04_OperatingSystem.File_Proyect;
 import _04_OperatingSystem.FileSystem;
 import _04_OperatingSystem.IOAction;
 import _04_OperatingSystem.IOPetition;
@@ -25,9 +25,16 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.GridLayout;
 import java.awt.Image;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.util.ArrayList;
+import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
+import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -51,6 +58,7 @@ public class MainJFrame extends javax.swing.JFrame {
     private OperatingSystem so;
     private DefaultTreeModel treeModel;
     private Timer uiTimer;
+    private List<FSItem> fileSystemItems = new ArrayList<>();
 
     private String selectedPath = null;
     private boolean selectedIsFile = false;
@@ -273,14 +281,14 @@ public class MainJFrame extends javax.swing.JFrame {
     public void updateAllocationTable() {
 
         AllocationTable at = simulator.getSo().getFileSystem().getAllocationTable();
-        SimpleList<File> files = at.getFiles();
+        SimpleList<File_Proyect> files = at.getFiles();
         DefaultTableModel model = (DefaultTableModel) tablaAsignacion.getModel();
         model.setRowCount(0);
 
         SimpleNode node = files.GetpFirst();
 
         while (node != null) {
-            File f = (File) node.GetData();
+            File_Proyect f = (File_Proyect) node.GetData();
 
             String name = f.getName();
             int blocks = f.getNumberOfBlocks();
@@ -375,9 +383,9 @@ public class MainJFrame extends javax.swing.JFrame {
     // Helper recursivo para el JTree
     private void buildTreeRecursive(DefaultMutableTreeNode visualNode, Directory logicalDir) {
         // Añadir archivos
-        SimpleNode<File> fileNode = logicalDir.getFiles().GetpFirst();
+        SimpleNode<File_Proyect> fileNode = logicalDir.getFiles().GetpFirst();
         while (fileNode != null) {
-            File f = fileNode.GetData();
+            File_Proyect f = fileNode.GetData();
             visualNode.add(new DefaultMutableTreeNode(f.getName() + " [F]"));
             fileNode = fileNode.GetNxt();
         }
@@ -505,17 +513,6 @@ public class MainJFrame extends javax.swing.JFrame {
         });
     }
 
-    /**
-     * Limpia los campos del formulario de creación de procesos.
-     */
-    private void resetFields() {
-        nameNewRecurso.setText("Nombre del Recurso");
-        blocksSpinner.setValue(1);
-    }
-
-    /**
-     * Aca Va el Codigo del JSON
-     */
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -929,10 +926,10 @@ public class MainJFrame extends javax.swing.JFrame {
         jPanel5Layout.setHorizontalGroup(
             jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel5Layout.createSequentialGroup()
-                .addContainerGap(79, Short.MAX_VALUE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
                     .addComponent(jLabel30)
-                    .addComponent(nodeSeclectedLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 205, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(nodeSeclectedLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 327, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(deleteResource, javax.swing.GroupLayout.PREFERRED_SIZE, 180, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGap(76, 76, 76))
         );
@@ -1034,7 +1031,72 @@ public class MainJFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_startSimulationActionPerformed
 
     private void uploadSimulationActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_uploadSimulationActionPerformed
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Cargar archivo JSON");
 
+        int result = chooser.showOpenDialog(this);
+
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File file = chooser.getSelectedFile();
+
+            try {
+                BufferedReader reader = new BufferedReader(new FileReader(file));
+                StringBuilder jsonBuilder = new StringBuilder();
+                String line;
+
+                while ((line = reader.readLine()) != null) {
+                    jsonBuilder.append(line.trim());
+                }
+                reader.close();
+
+                String json = jsonBuilder.toString();
+
+                fileSystemItems.clear();
+
+                // Extrae el arreglo items
+                json = json.substring(json.indexOf("[") + 1, json.lastIndexOf("]"));
+
+                String[] objects = json.split("\\},\\{");
+
+                for (String obj : objects) {
+                    obj = obj.replace("{", "").replace("}", "");
+
+                    String[] fields = obj.split(",");
+
+                    String name = "";
+                    String user = "";
+                    int blocks = 0;
+
+                    for (String field : fields) {
+                        String[] pair = field.split(":");
+
+                        String key = pair[0].replace("\"", "").trim();
+                        String value = pair[1].replace("\"", "").trim();
+
+                        switch (key) {
+                            case "name":
+                                name = value;
+                                break;
+
+                            case "user":
+                                user = value;
+                                break;
+
+                            case "blocks":
+                                blocks = Integer.parseInt(value);
+                                break;
+                        }
+                    }
+
+                    fileSystemItems.add(new FSItem(name, user, blocks));
+                }
+
+                JOptionPane.showMessageDialog(this, "JSON cargado exitosamente");
+
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Error al leer JSON: " + ex.getMessage());
+            }
+        }
     }//GEN-LAST:event_uploadSimulationActionPerformed
 
     private void resetSimulationActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_resetSimulationActionPerformed
@@ -1079,6 +1141,7 @@ public class MainJFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_generate20ProcessActionPerformed
 
     private void readResourceActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_readResourceActionPerformed
+        readResource.setSelected(false);
         if (simulator == null) {
             return;
         }
@@ -1171,6 +1234,7 @@ public class MainJFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_readResourceActionPerformed
 
     private void startSimulation2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_startSimulation2ActionPerformed
+        startSimulation2.setSelected(false);
         if (simulator == null) {
             return;
         }
@@ -1274,6 +1338,8 @@ public class MainJFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_startSimulation2ActionPerformed
 
     private void editResourceActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_editResourceActionPerformed
+        editResource.setSelected(false);
+
         if (simulator == null) {
             return;
         }
@@ -1332,7 +1398,7 @@ public class MainJFrame extends javax.swing.JFrame {
             }
 
             if (isFile) {
-                File file = parentDir.findFileByName(resourceName);
+                File_Proyect file = parentDir.findFileByName(resourceName);
                 if (file == null) {
                     JOptionPane.showMessageDialog(this,
                             "No se encontró el archivo: " + resourceName,
@@ -1379,6 +1445,7 @@ public class MainJFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_editResourceActionPerformed
 
     private void deleteResourceActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_deleteResourceActionPerformed
+        deleteResource.setSelected(false);
         if (simulator == null) {
             return;
         }
@@ -1447,7 +1514,7 @@ public class MainJFrame extends javax.swing.JFrame {
                     return;
                 }
 
-                File file = parentDir.findFileByName(resourceName);
+                File_Proyect file = parentDir.findFileByName(resourceName);
                 if (file == null) {
                     JOptionPane.showMessageDialog(this,
                             "No se encontró el archivo: " + resourceName,
@@ -1526,7 +1593,51 @@ public class MainJFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_deleteResourceActionPerformed
 
     private void saveSimulationActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveSimulationActionPerformed
-        // TODO add your handling code here:
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Guardar archivo JSON");
+
+        int result = chooser.showSaveDialog(this);
+
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File file = chooser.getSelectedFile();
+
+            if (!file.getName().toLowerCase().endsWith(".json")) {
+                file = new File(file.getAbsolutePath() + ".json");
+            }
+
+            try {
+                StringBuilder json = new StringBuilder();
+                json.append("{\n");
+                json.append("  \"items\": [\n");
+
+                for (int i = 0; i < fileSystemItems.size(); i++) {
+                    FSItem item = fileSystemItems.get(i);
+
+                    json.append("    {\n");
+                    json.append("      \"name\": \"").append(item.getName()).append("\",\n");
+                    json.append("      \"user\": \"").append(item.getUser()).append("\",\n");
+                    json.append("      \"blocks\": ").append(item.getBlocks()).append("\n");
+                    json.append("    }");
+
+                    if (i < fileSystemItems.size() - 1) {
+                        json.append(",");
+                    }
+                    json.append("\n");
+                }
+
+                json.append("  ]\n");
+                json.append("}\n");
+
+                FileWriter writer = new FileWriter(file);
+                writer.write(json.toString());
+                writer.close();
+
+                JOptionPane.showMessageDialog(this, "JSON guardado exitosamente");
+
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Error guardando JSON: " + ex.getMessage());
+            }
+        }
     }//GEN-LAST:event_saveSimulationActionPerformed
 
     private void politicsComboBoxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_politicsComboBoxActionPerformed

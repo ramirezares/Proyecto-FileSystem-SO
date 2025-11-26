@@ -14,7 +14,7 @@ import _02_DataStructures.SimpleNode;
 public class AllocationTable {
     
     // Tiene la lista de archivos para mostrarlos en la interfaz
-    private SimpleList<File> files;
+    private SimpleList<File_Proyect> files;
 
     
     // COnstructor
@@ -23,11 +23,11 @@ public class AllocationTable {
     }
 
     // Getters and Setters
-    public SimpleList<File> getFiles() {
+    public SimpleList<File_Proyect> getFiles() {
         return files;
     }
 
-    public void setFiles(SimpleList<File> files) {
+    public void setFiles(SimpleList<File_Proyect> files) {
         this.files = files;
     }
 
@@ -47,7 +47,7 @@ public class AllocationTable {
         }
 
         for (SimpleNode node = this.files.GetpFirst(); node != null; node = node.GetNxt()){
-            File file = (File) node.GetData();
+            File_Proyect file = (File_Proyect) node.GetData();
 
             String fullPath = file.getParentDirectory().getFullPath() + "/" + file.getName();
             int userId = file.getUser();
