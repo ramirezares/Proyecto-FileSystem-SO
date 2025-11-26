@@ -16,7 +16,7 @@ public class Catalog {
     private int blocksQuantity;
     private int user;
     private String resourceType;
-
+    
     public Catalog(String nameOfDirectory, String name, String newName, int blocksQuantity, int user, String resourceType) {
         this.nameOfDirectory = nameOfDirectory;
         this.name = name;

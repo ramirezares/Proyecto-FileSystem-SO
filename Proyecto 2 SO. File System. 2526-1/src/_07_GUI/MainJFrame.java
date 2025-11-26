@@ -579,7 +579,7 @@ public class MainJFrame extends javax.swing.JFrame {
         jLabel24.setForeground(new java.awt.Color(255, 255, 255));
         jLabel24.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel24.setText("Peticiones al Disco");
-        jPanel1.add(jLabel24, new org.netbeans.lib.awtextra.AbsoluteConstraints(860, 20, -1, -1));
+        jPanel1.add(jLabel24, new org.netbeans.lib.awtextra.AbsoluteConstraints(880, 20, -1, -1));
 
         javax.swing.GroupLayout petitionPanelLayout = new javax.swing.GroupLayout(petitionPanel);
         petitionPanel.setLayout(petitionPanelLayout);
@@ -644,7 +644,7 @@ public class MainJFrame extends javax.swing.JFrame {
         jLabel26.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabel26.setForeground(new java.awt.Color(255, 255, 255));
         jLabel26.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel26.setText("Tabla de Asignación");
+        jLabel26.setText("Estructura de carpetas");
         jPanel1.add(jLabel26, new org.netbeans.lib.awtextra.AbsoluteConstraints(670, 20, -1, -1));
 
         treeScroll.setViewportView(jTree1);
@@ -789,6 +789,11 @@ public class MainJFrame extends javax.swing.JFrame {
         jLabel3.setText("Tipo de Recurso");
 
         jComboBox1.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Archivo", "Directorio", " " }));
+        jComboBox1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jComboBox1ActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
         jPanel3.setLayout(jPanel3Layout);
@@ -1033,7 +1038,7 @@ public class MainJFrame extends javax.swing.JFrame {
 
     private void uploadSimulationActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_uploadSimulationActionPerformed
         JFileChooser chooser = new JFileChooser();
-        chooser.setDialogTitle("Cargar archivo JSON");
+        chooser.setDialogTitle("Cargar Configuración de Archivos");
 
         int result = chooser.showOpenDialog(this);
 
@@ -1041,7 +1046,7 @@ public class MainJFrame extends javax.swing.JFrame {
             File file = chooser.getSelectedFile();
 
             try {
-                BufferedReader reader = new BufferedReader(new FileReader(file));
+                java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(file));
                 StringBuilder jsonBuilder = new StringBuilder();
                 String line;
 
@@ -1052,37 +1057,46 @@ public class MainJFrame extends javax.swing.JFrame {
 
                 String json = jsonBuilder.toString();
 
-                fileSystemItems.clear();
-
-                // 1️⃣ Extrae el contenido del array "items"
+                // 1. Extraer array "files"
                 int start = json.indexOf("[");
                 int end = json.lastIndexOf("]");
 
                 if (start == -1 || end == -1) {
-                    throw new RuntimeException("Formato JSON inválido");
+                    // Caso borde: JSON válido pero array vacío
+                    if (json.contains("\"files\": []")) {
+                        javax.swing.JOptionPane.showMessageDialog(this, "El archivo JSON no contiene archivos.");
+                        return;
+                    }
+                    throw new RuntimeException("Formato JSON inválido o array no encontrado");
                 }
 
                 String itemsText = json.substring(start + 1, end).trim();
 
-                // 2️⃣ Divide objetos individualmente
-                //    Funciona aunque haya espacios o saltos de línea
+                if (itemsText.isEmpty()) {
+                    javax.swing.JOptionPane.showMessageDialog(this, "El archivo JSON no contiene archivos.");
+                    return;
+                }
+
+                // 2. Separar objetos
+                // Regex mejorado para separar por "},"
                 String[] objects = itemsText.split("\\},\\s*\\{");
 
-                for (String obj : objects) {
+                int loadedCount = 0;
 
-                    // Limpia llaves
+                for (String obj : objects) {
+                    // Limpieza básica
                     obj = obj.replace("{", "").replace("}", "");
 
-                    // Divide campos
-                    String[] fields = obj.split(",");
-
+                    // Valores por defecto
                     String name = "";
-                    String user = "";
+                    int user = 0;
                     int blocks = 0;
+                    String path = "root";
 
+                    // Parsear campos manualmente (simple pero efectivo para este formato)
+                    String[] fields = obj.split(",");
                     for (String f : fields) {
                         String[] pair = f.split(":", 2);
-
                         if (pair.length < 2) {
                             continue;
                         }
@@ -1094,24 +1108,46 @@ public class MainJFrame extends javax.swing.JFrame {
                             case "name":
                                 name = value;
                                 break;
-
                             case "user":
-                                user = value;
+                                user = Integer.parseInt(value);
                                 break;
-
                             case "blocks":
                                 blocks = Integer.parseInt(value);
+                                break;
+                            case "path":
+                                path = value;
                                 break;
                         }
                     }
 
-                    fileSystemItems.add(new FSItem(name, user, blocks));
+                    // 3. CREAR EL ARCHIVO EN EL SIMULADOR
+                    // Usamos el OS del simulador para generar la petición real
+                    if (!name.isEmpty() && blocks > 0) {
+                        System.out.println("Cargando archivo: " + name + " en " + path);
+
+                        // Crear el catálogo (IOAction.CREATE_FILE)
+                        // Nota: 'path' es el directorio padre (nameOfDirectory en Catalog)
+                        _04_OperatingSystem.Catalog cat = simulator.getSo().createCatalogForProcess(
+                                _04_OperatingSystem.IOAction.CREATE_FILE,
+                                path,
+                                name,
+                                "",
+                                blocks,
+                                user,
+                                "File"
+                        );
+
+                        // Enviar el proceso al SO
+                        simulator.getSo().newProcess(_04_OperatingSystem.IOAction.CREATE_FILE, cat);
+                        loadedCount++;
+                    }
                 }
 
-                JOptionPane.showMessageDialog(this, "JSON cargado exitosamente");
+                javax.swing.JOptionPane.showMessageDialog(this, "Se han cargado " + loadedCount + " archivos exitosamente.\n(Los procesos de creación se han añadido a la cola)");
 
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Error al leer JSON: " + ex.getMessage());
+                javax.swing.JOptionPane.showMessageDialog(this, "Error al cargar JSON: " + ex.getMessage(), "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+                ex.printStackTrace();
             }
         }
 
@@ -1123,17 +1159,17 @@ public class MainJFrame extends javax.swing.JFrame {
         }
 
         // 1. Detener simulación actual
-    if (simulator != null) {
-        simulator.stopSimulation();
-    }
+        if (simulator != null) {
+            simulator.stopSimulation();
+        }
 
-    // 2. Cerrar ventana actual
-    this.dispose();
+        // 2. Cerrar ventana actual
+        this.dispose();
 
-    // 3. Volver a abrir desde cero
-    java.awt.EventQueue.invokeLater(() -> {
-        new MainJFrame().setVisible(true);
-    });
+        // 3. Volver a abrir desde cero
+        java.awt.EventQueue.invokeLater(() -> {
+            new MainJFrame().setVisible(true);
+        });
     }//GEN-LAST:event_resetSimulationActionPerformed
 
     private void generate20ProcessActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_generate20ProcessActionPerformed
@@ -1320,7 +1356,7 @@ public class MainJFrame extends javax.swing.JFrame {
 
                 dh.createFile(cat, parentDir); //Aca archivo
             } else {
-                dh.createFile(cat, parentDir); //Aqui se supone que va directorio
+                dh.createDirectory(cat, parentDir); // Directorio
             }
 
         } // -----------------------------
@@ -1437,7 +1473,7 @@ public class MainJFrame extends javax.swing.JFrame {
 
         } else {
             // --- Usuario normal: crear proceso ---
-            IOAction action = isFile ? IOAction.UPDATE_FILE : IOAction.UPDATE_FILE; // suponiendo MODIFY_DIR existe
+            IOAction action = isFile ? IOAction.UPDATE_FILE : IOAction.UPDATE_FILE; // MODIFY_DIR no existe
             String type = isFile ? "File" : "Directory";
 
             Catalog cat = so.createCatalogForProcess(
@@ -1606,7 +1642,7 @@ public class MainJFrame extends javax.swing.JFrame {
 
     private void saveSimulationActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveSimulationActionPerformed
         JFileChooser chooser = new JFileChooser();
-        chooser.setDialogTitle("Guardar archivo JSON");
+        chooser.setDialogTitle("Guardar Configuración de Archivos (JSON)");
 
         int result = chooser.showSaveDialog(this);
 
@@ -1618,36 +1654,54 @@ public class MainJFrame extends javax.swing.JFrame {
             }
 
             try {
+                // 1. Obtener la lista REAL de archivos del sistema
+                // Asumimos que tienes acceso a 'simulator' desde este panel
+                _02_DataStructures.SimpleList<_04_OperatingSystem.File_Proyect> fileList
+                        = simulator.getSo().getFileSystem().getAllocationTable().getFiles();
+
                 StringBuilder json = new StringBuilder();
                 json.append("{\n");
-                json.append("  \"items\": [\n");
+                json.append("  \"files\": [\n");
 
-                for (int i = 0; i < fileSystemItems.size(); i++) {
-                    FSItem item = fileSystemItems.get(i);
+                if (fileList != null && !fileList.isEmpty()) {
+                    _02_DataStructures.SimpleNode<_04_OperatingSystem.File_Proyect> node = fileList.GetpFirst();
 
-                    json.append("    {\n");
-                    json.append("      \"name\": \"").append(item.getName()).append("\",\n");
-                    json.append("      \"user\": \"").append(item.getUser()).append("\",\n");
-                    json.append("      \"blocks\": ").append(item.getBlocks()).append("\n");
-                    json.append("    }");
+                    while (node != null) {
+                        _04_OperatingSystem.File_Proyect f = node.GetData();
 
-                    if (i < fileSystemItems.size() - 1) {
-                        json.append(",");
+                        // Construir la ruta completa para poder restaurarlo luego
+                        // (Asumimos que getFullPath() existe en Directory, como agregamos antes)
+                        String parentPath = (f.getParentDirectory() != null) ? f.getParentDirectory().getFullPath() : "root";
+
+                        json.append("    {\n");
+                        json.append("      \"name\": \"").append(f.getName()).append("\",\n");
+                        json.append("      \"user\": ").append(f.getUser()).append(",\n"); // Int sin comillas
+                        json.append("      \"blocks\": ").append(f.getNumberOfBlocks()).append(",\n");
+                        json.append("      \"path\": \"").append(parentPath).append("\"\n"); // Guardamos la ruta padre
+                        json.append("    }");
+
+                        if (node.GetNxt() != null) {
+                            json.append(",");
+                        }
+                        json.append("\n");
+
+                        node = node.GetNxt();
                     }
-                    json.append("\n");
                 }
 
                 json.append("  ]\n");
                 json.append("}\n");
 
-                FileWriter writer = new FileWriter(file);
+                // Escribir al disco
+                java.io.FileWriter writer = new java.io.FileWriter(file);
                 writer.write(json.toString());
                 writer.close();
 
-                JOptionPane.showMessageDialog(this, "JSON guardado exitosamente");
+                javax.swing.JOptionPane.showMessageDialog(this, "Configuración guardada exitosamente.");
 
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Error guardando JSON: " + ex.getMessage());
+                javax.swing.JOptionPane.showMessageDialog(this, "Error guardando JSON: " + ex.getMessage(), "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+                ex.printStackTrace();
             }
         }
 
@@ -1682,6 +1736,10 @@ public class MainJFrame extends javax.swing.JFrame {
     private void nameNewRecurso1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_nameNewRecurso1ActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_nameNewRecurso1ActionPerformed
+
+    private void jComboBox1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jComboBox1ActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_jComboBox1ActionPerformed
 
     /**
      * @param args the command line arguments

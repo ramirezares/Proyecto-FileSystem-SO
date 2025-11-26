@@ -7,6 +7,7 @@ package _03_LowLevelAbstractions;
 import _04_OperatingSystem.DiskHandler;
 import _02_DataStructures.SimpleList;
 import _04_OperatingSystem.FileSystem;
+import _04_OperatingSystem.IOPetition;
 import _04_OperatingSystem.OperatingSystem;
 import _04_OperatingSystem.Process1;
 
@@ -120,7 +121,7 @@ public class DMA extends Thread {
                             System.out.println("[DMA] Peticion del proceso a disco creada");
 
                             // Añadir el proceso a la cola de E/S del dispositivo (disco) que tiene el FileSystem
-                            this.fileSystemReference.addPetition(currentProcess);
+                            this.addPetition(currentProcess);
 
                             // Verificar que termine con un proceso
                             this.currentProcess = null;
@@ -137,6 +138,12 @@ public class DMA extends Thread {
 
     public void addNewProcess(Process1 newProcess) {
         this.newProcesses.insertLast(newProcess);
+    }
+    
+    public void addPetition(Process1 process) {
+         
+        this.getOsReference().getFileSystem().addPetition(process);
+        
     }
 
     // ------ Getters y Setters ------

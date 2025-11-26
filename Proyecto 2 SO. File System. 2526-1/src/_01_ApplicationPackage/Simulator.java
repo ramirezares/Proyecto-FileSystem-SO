@@ -105,7 +105,7 @@ public class Simulator {
         System.out.println(">>> Deteniendo simulación (shutdownOS)...");
 
         // Apaga todos los hilos del SO actual
-        so.shutdownOS();
+        so.stopOS();
 
         started = false;
         paused = false;
@@ -187,45 +187,8 @@ public class Simulator {
                         "User1";
                 };
 
-                // 1. Crear carpeta del usuario si no existe
-                Catalog catDir = so.createCatalogForProcess(
-                        IOAction.CREATE_DIR,
-                        "root",
-                        userFolder,
-                        "",
-                        0,
-                        userId,
-                        "Directory"
-                );
-                so.newProcess(IOAction.CREATE_DIR, catDir);
-                Thread.sleep(300);
-                refreshView();
-
-                // 2. Crear archivo dentro de esa carpeta
-                Catalog catFile1 = so.createCatalogForProcess(
-                        IOAction.CREATE_FILE,
-                        "root/" + userFolder,
-                        "Tesis.docx",
-                        "",
-                        4, // bloques
-                        userId,
-                        "File"
-                );
-                so.newProcess(IOAction.CREATE_FILE, catFile1);
-                Thread.sleep(300);
-                refreshView();
-
-                // 3. Leer el archivo
-                Catalog catRead = so.createCatalogForProcess(
-                        IOAction.READ_FILE,
-                        "root/" + userFolder,
-                        "Tesis.docx",
-                        "",
-                        0,
-                        userId,
-                        "File"
-                );
-                so.newProcess(IOAction.READ_FILE, catRead);
+                this.getSo().createRandomFiles(1);
+                this.getSo().createRandomFiles(2);
                 Thread.sleep(300);
                 refreshView();
 

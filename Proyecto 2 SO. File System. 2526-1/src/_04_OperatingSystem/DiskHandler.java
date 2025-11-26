@@ -64,6 +64,12 @@ public class DiskHandler extends Thread {
      * falta de espacio).
      */
     public boolean executeOperation(IOPetition petition) {
+        try {
+            Thread.sleep(1000); // 1 segundo de retardo por operación
+        } catch (InterruptedException e) {
+            
+        }
+        
         IOAction action = petition.getAction();
         Catalog catalog = petition.getCatalog();
 

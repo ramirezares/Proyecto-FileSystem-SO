@@ -30,6 +30,9 @@ public class FileSystem extends Thread {
     // Monitor para la sincronizacion para usar wait() y notify()
     private final Object syncMonitor = new Object();
 
+    // Para sincronización de la cola de peticiones
+    private final Object petitionsMonitor = new Object();
+
     // Para poder referenciar los atributos del DMA 
     private DMA DMAReference;
 
@@ -62,8 +65,8 @@ public class FileSystem extends Thread {
         this.isOrdered = true;
         this.allocationTable = new AllocationTable();
         this.disk = new Disk(32);
-        this.diskHandler = new DiskHandler(this.disk, this.allocationTable,32);
-        
+        this.diskHandler = new DiskHandler(this.disk, this.allocationTable, 32);
+
     }
 
     /**
@@ -108,30 +111,31 @@ public class FileSystem extends Thread {
                 try {
                     syncMonitor.wait();
 
-                    // Planificacion 
-                    if (this.petitions.GetpFirst() != null && this.currentPetition == null) {
+                    // Sincronizamos el acceso a la lista de peticiones
+                    synchronized (petitionsMonitor) {
+                        // Planificacion 
+                        if (this.petitions.GetpFirst() != null && this.currentPetition == null) {
 
-                        // --- IOSUPERVISOR ---
-                        if (!this.isOrdered || this.currentPolicy != DiskPolicyType.FIFO) {
-                             System.out.println("[FileSystem] IOSupervisor reordenando cola usando: " + this.currentPolicy);
-                             
-                             // Obtenemos la última posición del cabezal
-                             int headPosition = this.diskHandler.getLastBlockReferenced();
-                             
-                             this.diskSupervisor.planificatePetitions(this.petitions, this.currentPolicy, headPosition, this.allocationTable);
-                             this.isOrdered = true; // Marcamos como ordenada
+                            // --- IOSUPERVISOR ---
+                            if (!this.isOrdered || this.currentPolicy != DiskPolicyType.FIFO) {
+                                System.out.println("[FileSystem] IOSupervisor reordenando cola usando: " + this.currentPolicy);
+
+                                // Obtenemos la última posición del cabezal
+                                int headPosition = this.diskHandler.getLastBlockReferenced();
+
+                                this.diskSupervisor.planificatePetitions(this.petitions, this.currentPolicy, headPosition, this.allocationTable);
+                                this.isOrdered = true; // Marcamos como ordenada
+                            }
+
+                            // Tomamos el primero (que será el mejor según el algoritmo)
+                            this.currentPetition = (IOPetition) this.petitions.GetpFirst().GetData();
+
+                            // Toma la duración para manejar la E/S
+                            this.remainingCycles = this.currentPetition.getProcessReference().getCyclesToManageException();
+
+                            this.petitions.delNodewithVal(currentPetition);
                         }
-
-                        // Ahora sí, tomamos el primero (que será el mejor según el algoritmo)
-                        this.currentPetition = (IOPetition) this.petitions.GetpFirst().GetData();
-                        
-                        
-                        // Toma la duración para manejar la E/S
-                        this.remainingCycles = this.currentPetition.getProcessReference().getCyclesToManageException();
-                        
-                        this.petitions.delNodewithVal(currentPetition);
                     }
-
                     // Ejecucion
                     if (this.currentPetition != null) {
                         System.out.println("Sistema de archivos trabajando");
@@ -148,8 +152,6 @@ public class FileSystem extends Thread {
                                 // Opcional: Manejar el fallo (ej. loggear, notificar al proceso)
                                 System.err.println("[FileSystem] DiskHandler falló al ejecutar la petición para el proceso: " + this.currentPetition.getProcessReference().getPID());
                             }
-                            
-                            // Aqui se puede mostrar el mensaje
 
                             // Para darselo al Sistema operativo
                             Process1 terminatedProcess = this.currentPetition.getProcessReference();
@@ -168,12 +170,14 @@ public class FileSystem extends Thread {
         }
     }
 
+    // Método usado por el DMA para insertar
     public void addPetition(Process1 process) {
-
         IOPetition newPetition = new IOPetition(process.getAction(), process.getCatalog(), process);
 
-        this.petitions.insertLast(newPetition);
-        this.isOrdered = false; // Marcamos como desordenada
+        synchronized (petitionsMonitor) {
+            this.petitions.insertLast(newPetition);
+            this.isOrdered = false; // Marcamos como desordenada
+        }
     }
 
     public int getRemainingCycles() {
@@ -264,7 +268,5 @@ public class FileSystem extends Thread {
     public void setDisk(Disk disk) {
         this.disk = disk;
     }
-    
-    
 
 }
