@@ -4,12 +4,7 @@
  */
 package _01_ApplicationPackage;
 
-import _04_OperatingSystem.Catalog;
-import _04_OperatingSystem.FileSystem;
-import _04_OperatingSystem.IOAction;
-import _04_OperatingSystem.OperatingSystem;
 import _07_GUI.MainJFrame;
-import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
 /**

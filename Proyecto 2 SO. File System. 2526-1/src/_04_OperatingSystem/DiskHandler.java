@@ -7,7 +7,6 @@ package _04_OperatingSystem;
 import _02_DataStructures.SimpleList;
 import _02_DataStructures.SimpleNode;
 import _03_LowLevelAbstractions.Disk;
-import javax.swing.JOptionPane;
 
 /**
  *
@@ -117,7 +116,7 @@ public class DiskHandler extends Thread {
     /**
      * Método para crear un archivo.
      */
-    private boolean createFile(Catalog catalog, Directory parentDirectory) {
+    public boolean createFile(Catalog catalog, Directory parentDirectory) {
         // Verificamos si hay espacio suficiente
         if (this.disk.getNumberAvailable() < catalog.getBlocksQuantity()) {
             System.err.println("DiskHandler: No hay espacio suficiente para crear " + catalog.getName());
@@ -287,7 +286,7 @@ public class DiskHandler extends Thread {
     /**
      * Método para crear un nuevo directorio.
      */
-    private boolean createDirectory(Catalog catalog, Directory parentDirectory) {
+    public boolean createDirectory(Catalog catalog, Directory parentDirectory) {
         String newDirName = catalog.getName();
 
         // Ya valide el permiso en el directorio que contiene a este en el execute
@@ -438,6 +437,44 @@ public class DiskHandler extends Thread {
     // Setter
     public void setLastBlockReferenced(int lastBlockReferenced) {
         this.lastBlockReferenced = lastBlockReferenced;
+    }
+
+// Wrapper público para poder usar findDirectoryByPath desde la GUI
+    public Directory getDirectoryByPath(String path) {
+        return findDirectoryByPath(path);
+    }
+
+    // --- Operaciones directas para ADMIN (sin pasar por procesos) ---
+    public boolean deleteFileDirect(File fileToDelete) {
+        if (fileToDelete == null) {
+            return false;
+        }
+        // Reutilizamos la lógica ya implementada
+        return deleteFileInternal(fileToDelete);
+    }
+
+    public boolean deleteDirectoryDirect(Directory dirToDelete) {
+        if (dirToDelete == null) {
+            return false;
+        }
+
+        // No permitimos borrar root
+        if (dirToDelete == this.rootDirectory) {
+            System.err.println("DiskHandler: No se puede eliminar el directorio root.");
+            return false;
+        }
+
+        // 1. Borrar todo el contenido recursivo (directorios + archivos)
+        deleteDirectoryRecursive(dirToDelete);
+
+        // 2. Quitar el directorio de su padre
+        Directory parent = dirToDelete.getParentDirectory();
+        if (parent != null) {
+            parent.removeSubDirectory(dirToDelete);
+        }
+
+        System.out.println("DiskHandler: Directorio eliminado " + dirToDelete.getName());
+        return true;
     }
 
 }

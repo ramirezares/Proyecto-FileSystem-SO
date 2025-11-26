@@ -171,5 +171,13 @@ public class Directory {
             subDir.printTreeRecursive(childIndent);
         }
     }
+
+    public Directory getParentDirectory() {
+        return parentDirectory;
+    }
+
+    public void setParentDirectory(Directory parentDirectory) {
+        this.parentDirectory = parentDirectory;
+    }
     
 }

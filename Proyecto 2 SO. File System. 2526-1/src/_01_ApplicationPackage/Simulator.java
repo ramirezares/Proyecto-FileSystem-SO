@@ -5,10 +5,10 @@
 package _01_ApplicationPackage;
 
 import _04_OperatingSystem.OperatingSystem;
-import _07_GUI.SimulationPanel;
 import _04_OperatingSystem.Catalog;
 import _04_OperatingSystem.IOAction;
-import javax.swing.Timer;
+import _07_GUI.MainJFrame;
+import javax.swing.SwingUtilities;
 
 /**
  *
@@ -17,58 +17,284 @@ import javax.swing.Timer;
 public class Simulator {
 
     private OperatingSystem so;
-    private SimulationPanel view;
-    private Timer guiTimer; // Temporizador para refrescar la pantalla
+    private MainJFrame view;
 
-    public Simulator(SimulationPanel view) {
+    // Estado del simulador
+    private boolean started = false; // el SO ya arrancó al menos una vez
+    private boolean paused = false;  // CPU/DMA/FS/Clock detenidos lógicamente
+
+    // Usuario actual (para enlazar con el combo de la UI)
+    private String currentUser = "User 1";
+
+    public Simulator(MainJFrame view) {
         this.view = view;
-        this.so = new OperatingSystem();
         this.view.setSimulator(this);
-        
-        // Configurar timer para actualizar la GUI cada 100ms (10 FPS)
-        this.guiTimer = new Timer(100, e -> {
-            if (so != null) {
-                this.view.updateView(so);
-            }
-        });
+
+        this.so = new OperatingSystem();
     }
 
+    /**
+     * Inicia la simulación por primera vez o reanuda si estaba pausada. Este
+     * método es el que debe llamar el botón "Iniciar simulación".
+     */
     public void startSimulation() {
-        System.out.println(">>> Iniciando Simulador...");
-        so.startOS();
-        guiTimer.start(); // Empezar a refrescar la pantalla
+        // Si nunca se ha arrancado el SO, lo arrancamos
+        if (!started) {
+            System.out.println(">>> Iniciando SO y componentes...");
+            so.startOS();      // lanza hilos del SO, CPU, DMA, FileSystem, Clock
+            started = true;
+            paused = false;
+        } else if (paused) {
+            // Reanudar después de una pausa
+            System.out.println(">>> Reanudando simulación...");
+            resumeComponents();
+            paused = false;
+        } else {
+            // Ya está corriendo
+            System.out.println(">>> La simulación ya está en ejecución.");
+        }
+
+        refreshView();
     }
 
+    /**
+     * Pausa la simulación sin destruir el SO. Aquí no usamos stopOS() porque
+     * mataría el hilo del SO y no podríamos reanudar.
+     */
+    public void pauseSimulation() {
+        if (!started || paused) {
+            return;
+        }
+
+        System.out.println(">>> Pausando simulación (CPU/DMA/FS/Clock)...");
+
+        // Usamos directamente los métodos de los componentes
+        try {
+            so.getCpu().stopCPU();
+        } catch (Exception ignored) {
+        }
+
+        try {
+            so.getDma().stopDMA();
+        } catch (Exception ignored) {
+        }
+
+        try {
+            so.getFileSystem().stopFileSystem();
+        } catch (Exception ignored) {
+        }
+
+        try {
+            so.getClock().stopClock();
+        } catch (Exception ignored) {
+        }
+
+        paused = true;
+    }
+
+    /**
+     * Detiene definitivamente el SO actual (por ejemplo al cerrar la app). No
+     * se recomienda usar esto para "pausar", porque el hilo del SO no se puede
+     * reiniciar después.
+     */
     public void stopSimulation() {
-        System.out.println(">>> Deteniendo Simulador...");
+        if (!started) {
+            return;
+        }
+
+        System.out.println(">>> Deteniendo simulación (shutdownOS)...");
+
+        // Apaga todos los hilos del SO actual
         so.shutdownOS();
-        guiTimer.stop();
+
+        started = false;
+        paused = false;
     }
 
-    // Método para generar datos de prueba desde la GUI
-    public void createTestLoad() {
-        new Thread(() -> { // Hacerlo en otro hilo para no congelar la GUI
+    /**
+     * Reinicia completamente la simulación: - apaga el SO actual - crea un SO
+     * nuevo - limpia la vista
+     */
+    public void resetSimulation() {
+        System.out.println(">>> Reiniciando simulación completa...");
+
+        // 1. Apagar el SO actual (si ya se inició)
+        if (started) {
             try {
-                int userId = 1;
-                
-                // 1. Crear carpeta
-                Catalog catDir = so.createCatalogForProcess(IOAction.CREATE_DIR, "root", "User1", "", 0, userId, "Directory");
+                so.shutdownOS();
+            } catch (Exception ignored) {
+            }
+        }
+
+        // 2. Crear una instancia nueva, limpia
+        this.so = new OperatingSystem();
+        this.started = false;
+        this.paused = false;
+
+        // 3. Limpiar la parte visual
+        view.resetView();
+
+        // 4. Refrescar vista con el nuevo SO vacío
+        refreshView();
+    }
+
+    /*==============================================================
+                     MÉTODOS AUXILIARES DE CONTROL
+    ==============================================================*/
+    /**
+     * Reanuda CPU, DMA, FileSystem y Clock. Lo usamos cuando el usuario da
+     * "Iniciar" estando en pausa.
+     */
+    private void resumeComponents() {
+        try {
+            so.getCpu().playCPU();
+        } catch (Exception ignored) {
+        }
+
+        try {
+            so.getDma().playDMA();
+        } catch (Exception ignored) {
+        }
+
+        try {
+            so.getFileSystem().playFileSystem();
+        } catch (Exception ignored) {
+        }
+
+        try {
+            so.getClock().playClock();
+        } catch (Exception ignored) {
+        }
+    }
+
+    /*==============================================================
+              MÉTODO PARA GENERAR CARGA DE PRUEBA (GUI)
+    ==============================================================*/
+    /**
+     * Crea algunos procesos de prueba relacionados con el File System. Se
+     * ejecuta en otro hilo para no congelar la interfaz.
+     */
+    public void createTestLoad() {
+        new Thread(() -> {
+            try {
+                int userId = resolveCurrentUserId();
+                String userFolder = switch (currentUser) {
+                    case "Admin" ->
+                        "Admin";
+                    case "User 2" ->
+                        "User2";
+                    default ->
+                        "User1";
+                };
+
+                // 1. Crear carpeta del usuario si no existe
+                Catalog catDir = so.createCatalogForProcess(
+                        IOAction.CREATE_DIR,
+                        "root",
+                        userFolder,
+                        "",
+                        0,
+                        userId,
+                        "Directory"
+                );
                 so.newProcess(IOAction.CREATE_DIR, catDir);
-                Thread.sleep(500); // Pausa dramática para ver el efecto
+                Thread.sleep(300);
+                refreshView();
 
-                // 2. Crear archivo
-                Catalog catFile1 = so.createCatalogForProcess(IOAction.CREATE_FILE, "root/User1", "Tesis.docx", "", 4, userId, "File");
+                // 2. Crear archivo dentro de esa carpeta
+                Catalog catFile1 = so.createCatalogForProcess(
+                        IOAction.CREATE_FILE,
+                        "root/" + userFolder,
+                        "Tesis.docx",
+                        "",
+                        4, // bloques
+                        userId,
+                        "File"
+                );
                 so.newProcess(IOAction.CREATE_FILE, catFile1);
-                Thread.sleep(500);
+                Thread.sleep(300);
+                refreshView();
 
-                // 3. Leer archivo
-                Catalog catRead = so.createCatalogForProcess(IOAction.READ_FILE, "root/User1", "Tesis.docx", "", 0, userId, "File");
+                // 3. Leer el archivo
+                Catalog catRead = so.createCatalogForProcess(
+                        IOAction.READ_FILE,
+                        "root/" + userFolder,
+                        "Tesis.docx",
+                        "",
+                        0,
+                        userId,
+                        "File"
+                );
                 so.newProcess(IOAction.READ_FILE, catRead);
-                
+                Thread.sleep(300);
+                refreshView();
+
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }).start();
     }
-    
+
+    /*==============================================================
+                      ACTUALIZAR LA INTERFAZ
+    ==============================================================*/
+    /**
+     * Llama a los métodos de actualización de la vista en el hilo de Swing.
+     */
+    public void refreshView() {
+        SwingUtilities.invokeLater(() -> {
+            try {
+                view.refreshUI(so);
+            } catch (Exception e) {
+                // Para evitar que una excepción gráfica tumbe la simulación
+                e.printStackTrace();
+            }
+        });
+    }
+
+    /*==============================================================
+                         USUARIO ACTUAL
+    ==============================================================*/
+    public void setCurrentUser(String user) {
+        this.currentUser = user;
+    }
+
+    public String getCurrentUser() {
+        return currentUser;
+    }
+
+    /**
+     * Traduce el texto del combo ("Admin", "User 1", "User 2") a un ID entero
+     * para el SO / FileSystem.
+     */
+    private int resolveCurrentUserId() {
+        return switch (currentUser) {
+            case "Admin" ->
+                0;
+            case "User 2" ->
+                2;
+            default ->
+                1;  // "User 1"
+        };
+    }
+
+    /*==============================================================
+                         GETTERS Y SETTERS
+    ==============================================================*/
+    public OperatingSystem getSo() {
+        return so;
+    }
+
+    public void setSo(OperatingSystem so) {
+        this.so = so;
+    }
+
+    public boolean isStarted() {
+        return started;
+    }
+
+    public boolean isPaused() {
+        return paused;
+    }
+
 }
